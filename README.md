@@ -22,6 +22,8 @@ Run scripts in `env_mlsa` (`module load miniforge3; source activate env_mlsa`). 
 | `07_gyrA_from_assemblies.py` | gyrA QRDR residues read from each genome's own annotation | `gyrA_QRDR_from_assemblies.csv` |
 | `08_outlier_private_variants.py` | variants carried by an MIC-outlier isolate and by no other genome of the species | `outlier_private_variants.csv` |
 | `09_ethA_054.py`, `10_ethA_promoter_and_paralog.py` | follow-up on Mkan329-054's ethA calls | `ethionamide_ethA_upstream_3145420.csv` |
+| `11_mgit_whole_gene.py` (+ `submit_mgit_whole_gene.sbatch`) | MGIT whole-gene association (gene-level binary calls, Fisher within species) | `mgit/gene_matrix.csv`, `mgit/mgit_gene_tests.csv`, `mgit/mgit_tests_run.csv` |
+| `12_mgit_lineage_followup.py` | characterise the top MGIT signal; ANI vs amikacin in the MIC cohort | `mgit/kansasii_mgit_block_ani_amikacin.csv`, `mgit/mic_cohort_ani_vs_mic.csv` |
 
 Reference files downloaded for numbering (UniProt H37Rv proteins, E. coli rrnA region) are in `output/gwas/ref/`.
 
@@ -78,10 +80,40 @@ Reference files downloaded for numbering (UniProt H37Rv proteins, E. coli rrnA r
   differ 16-fold in MIC, so the change would not explain 054's extreme value on its own. It does not explain 054's resistance to the
   other drugs.
 
+### MGIT whole-gene analysis (scripts 11-12)
+- 66 isolates have MGIT results; 47 have a genome and are not excluded (35 kansasii, 8 persicum, 4 pseudokansasii). Only 1 overlaps
+  with the MIC cohort (a persicum isolate), so MGIT is an independent set. Unreadable results (`U`) are dropped.
+- Resistance is rare. Only one drug and concentration has enough spread for a test (3 or more R and 3 or more non-R in a species):
+  amikacin 1 mg/L in kansasii, 11 R vs 6 S/I. Isoniazid 0.1 mg/L is R in all 13 tested isolates (no variation); isoniazid 1 mg/L has 2 R;
+  every other pair has 0-1 R, apart from clofazimine 0.25 mg/L (7 isolates, 4 R, all persicum). Persicum amikacin and the R-vs-S-only
+  contrast did not reach the group-size minimum.
+- Features: 8,321 gene-level binary calls (protein-altering variant, rRNA variant, or any change in the 150 bp upstream region). Fisher
+  exact test, BH correction over distinct carrier patterns (271 patterns).
+- Result: nothing significant (smallest q = 0.15). The top pattern is a block of 36 genes (9 across all 47 isolates) carried by 10 of 11
+  resistant and 0 of 6 non-resistant isolates.
+- That block is a divergence-from-reference signal, not a gene: carriers have ANI 98.9-99.7% to the reference, non-carriers 99.1-100%;
+  carriers differ from each other by about 26,000 sites, as much as from non-carriers, so they are not one clone. ANI alone separates
+  amikacin R from S/I (Mann-Whitney p = 0.05, uncorrected). The kansasii here is heterogeneous (82 genomes, 54 clusters at 1,000
+  differing sites), consistent with several M. kansasii subtypes; the reference represents only one.
+- The known amikacin/aminoglycoside loci show nothing: rrs (2 R carriers, 0 non-R, p = 0.51; the hotspot A1408 itself is wild-type), and
+  no gene named eis or whiB7 is annotated in the reference.
+- Independent check in the MIC cohort (21 kansasii, no overlap): amikacin MIC median 2.0 log2 for ANI below 99.67 (n = 13) vs 1.25 for ANI
+  of 99.67 or more (n = 8), Mann-Whitney p = 0.054; Spearman across ANI r = -0.23, p = 0.32. Same direction, not confirmed. The threshold
+  came from the MGIT data and only amikacin was tested for this. Ciprofloxacin also shows a weak trend with ANI (rho = -0.44, p = 0.047
+  unadjusted across 13 drugs), which does not survive correction.
+- Caveat on the phenotype: 1 mg/L is a low MGIT concentration, near the MIC of wild-type isolates (MIC cohort amikacin 1-8 mg/L), so
+  "R" at 1 mg/L reflects a slightly higher MIC distribution, not clinical resistance.
+
+## Interpretation so far
+No known resistance mutation explains any phenotype in either cohort. The two reproducible patterns are lineage-level: kansasii isolates
+more divergent from the reference tend toward higher amikacin MIC and growth at 1 mg/L amikacin, and persicum isolate 054 is a
+multi-drug high outlier. Both need subtype assignment (e.g. hsp65/ITS or a within-species tree), more isolates, and repeat testing.
+
 ## Open items
 1. Retest 054 and 055 (all drugs). A repeat decides whether the multi-drug shift is real or a testing artifact.
 2. Test whether position 3145420 changes ethA expression or ethionamide MIC (e.g. in other persicum isolates or by reporter assay).
 3. Look at permeability and regulator genes in 054 beyond the filtered variant lists. Read-mapping calls in divergent genes need
    verification against the assembly.
-4. Use MGIT (66 isolates, more resistance) for the whole-gene analysis; it cannot validate the MIC outliers.
+4. Assign M. kansasii subtype (hsp65/ITS or a relaxed-core within-species tree) and test subtype, not ANI, against amikacin; then redo the
+   gene-level analysis with subtype as a stratum. MGIT cannot validate the MIC outliers (none have MGIT data).
 5. Persicum needs more MIC-tested isolates; per-species analysis is currently impossible there.
