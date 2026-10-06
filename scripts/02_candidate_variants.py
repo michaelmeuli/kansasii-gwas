@@ -1,5 +1,8 @@
 """Extract variants in candidate resistance genes per isolate from snippy snps.tab (unannotated),
 using the Bakta annotation of the reference (identical sequence; contig_1==NC_022663.1, contig_2==NC_022654.1)."""
+from __future__ import annotations
+
+from typing import Any
 import re
 import pandas as pd
 from pathlib import Path
@@ -16,7 +19,7 @@ CANDIDATES = {"gyrA", "gyrB", "rpoB", "rpsL", "embA", "embB", "embC", "katG", "i
 
 genome = {CONTIG[r.id]: str(r.seq) for r in SeqIO.parse(REFDIR / "GCF_000157895.3_query.fna", "fasta")}
 
-genes = []
+gene_rows: list[dict[str, Any]] = []
 for line in open(REFDIR / "GCF_000157895.3_query.gff3"):
     if line.startswith("#"):
         continue
@@ -26,13 +29,13 @@ for line in open(REFDIR / "GCF_000157895.3_query.gff3"):
     attrs = dict(kv.split("=", 1) for kv in f[8].split(";") if "=" in kv)
     name = attrs.get("gene", "")
     if re.sub(r"\d+$", "", name) in CANDIDATES or name in CANDIDATES:
-        genes.append(dict(gene=name, locus=attrs.get("locus_tag"), chrom=CONTIG[f[0]], start=int(f[3]),
+        gene_rows.append(dict(gene=name, locus=attrs.get("locus_tag"), chrom=CONTIG[f[0]], start=int(f[3]),
                           end=int(f[4]), strand=f[6], type=f[2], product=attrs.get("product", "")))
-genes = pd.DataFrame(genes)
+genes = pd.DataFrame(gene_rows)
 genes.to_csv(OUT / "candidate_gene_coords.csv", index=False)
 print("candidate loci found:\n", genes[["gene", "chrom", "start", "end", "strand", "type"]].to_string(index=False))
 
-def codon_change(g, pos, ref, alt):
+def codon_change(g: Any, pos: int, ref: str, alt: str) -> tuple[int, str, str]:
     """Amino-acid change for a single-base substitution inside CDS g."""
     seq = genome[g.chrom]
     cds = seq[g.start - 1:g.end]
@@ -45,7 +48,9 @@ def codon_change(g, pos, ref, alt):
     aa0, aa1 = str(Seq(codon).translate(table=11)), str(Seq(new).translate(table=11))
     return ci + 1, aa0, aa1
 
-rows = []
+rows: list[dict[str, Any]] = []
+g: Any
+v: Any
 for tab in sorted(RES.glob("Mkan329-*/5_typing/kansasii_snippy/snippy_out/snps.tab")):
     sample = tab.parts[-5]
     t = pd.read_csv(tab, sep="\t", dtype=str)

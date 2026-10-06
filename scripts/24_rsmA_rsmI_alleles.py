@@ -1,6 +1,9 @@
 """Compare RsmA (FCNCLM_01703) and RsmI (FCNCLM_01716) alleles: kansasii reference vs the persicum-like alleles, across all 82 cohort kansasii genomes
 (own Bakta proteins), related to the segment class from script 22/23, and checked in public persicum and kansasii genomes (tblastn).
 Conservation is judged against the M. tuberculosis orthologs (KsgA/Rv1010, RsmI/Rv2372c): a position is 'conserved' when kansasii reference and Mtb agree."""
+from __future__ import annotations
+
+from typing import Any
 import subprocess
 import pandas as pd
 from collections import Counter
@@ -15,16 +18,16 @@ ref = {r.id: str(r.seq) for r in SeqIO.parse(REFFAA, "fasta")}
 GENES = {"RsmA": ("FCNCLM_01703", "ksgA"), "RsmI": ("FCNCLM_01716", "rsmI")}
 B62 = substitution_matrices.load("BLOSUM62")
 al = Align.PairwiseAligner(); al.mode = "global"; al.substitution_matrix = B62; al.open_gap_score, al.extend_gap_score = -10, -0.5
-def diffs(a, b):
+def diffs(a: str, b: str) -> list[tuple[int, str, str]]:
     """substitutions/indels of b relative to a, using a's numbering"""
-    aln = al.align(a, b)[0]; out = []; (ra, rb) = aln.aligned
+    aln = al.align(a, b)[0]; out: list[tuple[int, str, str]] = []; (ra, rb) = aln.aligned
     for (a0, a1), (b0, b1) in zip(ra, rb):
         out += [(a0 + i + 1, a[a0 + i], b[b0 + i]) for i in range(a1 - a0) if a[a0 + i] != b[b0 + i]]
     covered = sum(a1 - a0 for a0, a1 in ra)
     if covered < len(a) or sum(b1 - b0 for b0, b1 in rb) < len(b): out.append((0, "indel", f"aligned {covered}/{len(a)} vs {sum(b1-b0 for b0,b1 in rb)}/{len(b)}"))
     return out
 seg = pd.read_csv(OUT / "segment_classes_v2.csv", index_col=0)
-rows = []
+rows: list[dict[str, Any]] = []
 for s in seg.index:
     prots = {r.id: str(r.seq) for r in SeqIO.parse(RES / s / f"2_annotation/{s}.faa", "fasta")}
     row = {"sample": s, "cls": seg.cls[s]}
@@ -35,7 +38,7 @@ for s in seg.index:
 A = pd.DataFrame(rows).set_index("sample")
 for name, (lt, mg) in GENES.items():
     mtb = "".join(l.strip() for l in open(G / f"ref/Mtb_{mg}.faa") if not l.startswith(">"))
-    mtbmap = {}
+    mtbmap: dict[int, str] = {}
     aln = al.align(ref[lt], mtb)[0]
     for (a0, a1), (b0, b1) in zip(*aln.aligned):
         for i in range(a1 - a0): mtbmap[a0 + i + 1] = mtb[b0 + i]
@@ -66,22 +69,22 @@ for name, (lt, mg) in GENES.items():
             fa = OUT / f"pub_{sp}.fa"
             if not fa.exists():
                 with open(fa, "w") as f:
-                    for g in sorted((PUB / sp).glob("*.fna")):
-                        for r in SeqIO.parse(g, "fasta"): f.write(f">{g.stem}|{r.id}\n{str(r.seq)}\n")
+                    for gf in sorted((PUB / sp).glob("*.fna")):
+                        for r in SeqIO.parse(gf, "fasta"): f.write(f">{gf.stem}|{r.id}\n{str(r.seq)}\n")
                 subprocess.run(["makeblastdb", "-in", str(fa), "-dbtype", "nucl", "-out", str(OUT / f"pub_{sp}")], check=True, stdout=subprocess.DEVNULL)
-            res = {}
+            res: dict[str, dict[str, tuple[float, float, int]]] = {}
             for tag, q in (("ref", ref[lt]), ("alleleP1", main)):
                 (OUT / "q.faa").write_text(f">q\n{q}\n")
                 out = subprocess.run(["tblastn", "-query", str(OUT / "q.faa"), "-db", str(OUT / f"pub_{sp}"), "-outfmt", "6 sseqid pident length bitscore", "-evalue", "1e-30", "-max_target_seqs", "200"],
                                      check=True, capture_output=True, text=True).stdout.strip().split("\n")
-                best = {}
+                best: dict[str, tuple[float, float, int]] = {}
                 for l in out:
                     if not l: continue
                     sid, pid, ln, bs = l.split("\t"); g = sid.split("|")[0]
                     if g not in best or float(bs) > best[g][1]: best[g] = (float(pid), float(bs), int(ln))
                 res[tag] = best
             gen = sorted(set(res["ref"]) | set(res["alleleP1"]))
-            assign = Counter()
+            assign: Counter[str] = Counter()
             for g in gen:
                 sr, sp1 = res["ref"].get(g, (0, 0, 0)), res["alleleP1"].get(g, (0, 0, 0))
                 assign["alleleP1-like" if sp1[1] > sr[1] else "REF-like" if sr[1] > sp1[1] else "equal"] += 1

@@ -1,6 +1,9 @@
 """Core-SNP distances, NJ tree and sub-lineages within M. kansasii sensu stricto (GTDB 'kansasii', former subtype I).
 Uses snippy snps.aligned.fa (full-length alignment to NC_022663.1). Core = sites with an unambiguous base (ACGT) in every genome.
 Distances are Hamming counts over variable core sites (no recombination filtering; an approximation, not an ML tree)."""
+from __future__ import annotations
+
+import numpy.typing as npt
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -15,8 +18,8 @@ m = pd.read_csv(ROOT / "data/imm/screening_map_results.csv", usecols=["NR", "PRO
 m = m[(m.species == "kansasii") & ~m.NR.isin(EXCL)].sort_values("NR")
 names = m.PROBENNUMMER.tolist(); print("kansasii genomes:", len(names), flush=True)
 
-def read_chr(path):
-    seq, on = [], False
+def read_chr(path: Path) -> npt.NDArray[np.uint8]:
+    seq: list[str] = []; on = False
     for l in open(path):
         if l.startswith(">"):
             if on: break
@@ -43,7 +46,7 @@ print("pairwise core-SNP distance: min %d, median %d, max %d" % (D[iu].min(), np
 print("nearest-neighbour distance quantiles:", np.percentile(np.sort(D + np.eye(len(D)) * 10**9, axis=1)[:, 0], [0, 25, 50, 75, 100]).astype(int).tolist(), flush=True)
 
 dm = DistanceMatrix(names, [[int(D[i, j]) for j in range(i + 1)] for i in range(len(names))])
-tree = DistanceTreeConstructor().nj(dm); Phylo.write(tree, str(OUT / "kansasii_nj.nwk"), "newick")
+tree = DistanceTreeConstructor().nj(dm); Phylo.write(tree, str(OUT / "kansasii_nj.nwk"), "newick")  # type: ignore[attr-defined,no-untyped-call]
 Z = linkage(squareform(D, checks=False), "average"); np.save(OUT / "linkage.npy", Z)
 print("\ncluster counts and sizes at cut heights (average linkage, core SNPs):")
 for h in (500, 1000, 2000, 4000, 6000, 8000, 10000, 15000):

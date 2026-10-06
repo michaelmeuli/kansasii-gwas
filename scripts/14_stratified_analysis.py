@@ -1,6 +1,9 @@
 """Lineage-stratified re-analysis. Clades A (n=20) and B (n=60) = the two main groups of the 4-way average-linkage cut of core-SNP
 distances (script 13); the remaining 2 isolates are single long-branch genomes. (1) amikacin 1 mg/L MGIT by clade;
 (2) gene-level Fisher tests within clade B only; (3) the same within-clade question for ANI; (4) MIC cohort: clade vs MIC, all drugs."""
+from __future__ import annotations
+
+from typing import Any
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -22,18 +25,18 @@ ak = mg[(mg.antibiotic == "Amikacin") & (mg.concentration_mg_l == 1.0) & mg.erg.
 x = lin[lin.NR.isin(ak.index)].copy(); x["ak"] = ak.reindex(x.NR).values; x["R"] = x.ak == "R"
 print("\n(1) amikacin 1 mg/L by clade (R / S+I):\n", x.groupby("clade").R.agg(R="sum", n="size").assign(nonR=lambda d: d.n - d.R).to_string())
 a, b = x[x.clade == "A"], x[x.clade == "B"]
-print(f"   clade A vs B (R vs S+I): Fisher p = {fisher_exact([[a.R.sum(), (~a.R).sum()], [b.R.sum(), (~b.R).sum()]])[1]:.3f}")
+print(f"   clade A vs B (R vs S+I): Fisher p = {fisher_exact(np.array([[a.R.sum(), (~a.R).sum()], [b.R.sum(), (~b.R).sum()]]))[1]:.3f}")
 
 # (2) gene-level within clade B
 M = pd.read_csv(G / "mgit/gene_matrix.csv", index_col=0)
 xb = b[b.NR.isin(M.index)]; y = xb.R.to_numpy(); sub = M.loc[xb.NR]
 print(f"\n(2) gene-level, within clade B: {y.sum()} R vs {(~y).sum()} S+I")
-pats = {}
+pats: dict[tuple[Any, ...], list[tuple[Any, ...]]] = {}
 for col in sub.columns:
     v = sub[col].to_numpy(); c1, c0 = int(v[y].sum()), int(v[~y].sum())
     t = [[c1, int(y.sum()) - c1], [c0, int((~y).sum()) - c0]]
     if c1 + c0 < 2 or (y.sum() - c1) + ((~y).sum() - c0) < 2: continue
-    pats.setdefault(tuple(v), []).append((col, *t[0], *t[1], fisher_exact(t)[1]))
+    pats.setdefault(tuple(v), []).append((col, *t[0], *t[1], fisher_exact(np.array(t))[1]))
 p = np.array([v[0][5] for v in pats.values()]); n = len(p); o = np.argsort(p); q = np.empty(n)
 q[o] = np.minimum.accumulate((p[o] * n / (np.arange(n) + 1))[::-1])[::-1]
 rows = [dict(feature=f, R_car=a1, R_non=a2, nonR_car=b1, nonR_non=b2, p=pp, q=min(qq, 1), block=len(l)) for (pat, l), qq in zip(pats.items(), q) for f, a1, a2, b1, b2, pp in l]

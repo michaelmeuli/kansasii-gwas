@@ -1,0 +1,11 @@
+# Type-checking config only (analysis scripts, not a package).
+# Run: mypy   (from the repo root, in an env with mypy + pandas-stubs + scipy-stubs)
+[tool.mypy]
+strict = true
+python_version = "3.11"
+files = ["scripts"]
+untyped_calls_exclude = ["Bio"]
+
+[[tool.mypy.overrides]]
+module = ["adjustText", "statsmodels.*", "pysam.*", "pyvcf.*", "vcf.*"]
+ignore_missing_imports = true

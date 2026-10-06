@@ -1,4 +1,7 @@
 """Segment classes (script 22, persicum-like threshold relaxed to >= 0.75; none <= 0.10) vs amikacin: MGIT 1 mg/L, MIC cohort, and tree-aware checks."""
+from __future__ import annotations
+
+from typing import Any
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -8,7 +11,7 @@ from scipy.stats import fisher_exact, mannwhitneyu, binomtest
 
 ROOT = Path("/shares/sander.imm.uzh/MM/kansasii"); G = ROOT / "output/gwas"
 d = pd.read_csv(G / "boundaries/segment_classes.csv", index_col=0)
-def cls(r):
+def cls(r: Any) -> str:
     L, R = r.frac_persicum_left, r.frac_persicum_right
     if L >= .75 and R >= .75: return "full"
     if L >= .75 and R <= .10: return "left-only"
@@ -21,9 +24,9 @@ mg = pd.read_csv(ROOT / "output/mic/mgit/mgit_parsed.csv")
 ak = mg[(mg.antibiotic == "Amikacin") & (mg.concentration_mg_l == 1.0) & mg.erg.isin(["R", "I", "S"])].drop_duplicates("NR").set_index("NR").erg
 x = d[d.NR.isin(ak.index)].copy(); x["R"] = ak.reindex(x.NR).values == "R"
 print(f"\nMGIT amikacin 1 mg/L, kansasii (n={len(x)}; R {int(x.R.sum())}):\n", pd.crosstab(x.cls, x.R).rename(columns={True: "R", False: "S/I"}).to_string())
-def fisher(mask, label):
+def fisher(mask: pd.Series[bool], label: str) -> None:
     a, b, c, e = int((mask & x.R).sum()), int((mask & ~x.R).sum()), int((~mask & x.R).sum()), int((~mask & ~x.R).sum())
-    print(f"  {label}: R {a}/{a+b} vs {c}/{c+e}; Fisher p = {fisher_exact([[a, b], [c, e]])[1]:.4f}")
+    print(f"  {label}: R {a}/{a+b} vs {c}/{c+e}; Fisher p = {fisher_exact(np.array([[a, b], [c, e]]))[1]:.4f}")
 fisher(x.cls == "full", "full segment vs rest")
 fisher(x.cls.isin(["full", "left-only"]), "any persicum-like piece (full or left-only) vs none/partial")
 fisher(x.cls.isin(["full"]) | (x.frac_persicum_right >= .75), "right part persicum-like vs rest")
@@ -50,10 +53,10 @@ Z = linkage(squareform(D.values, checks=False), "average")
 for cut in (60, 100):
     c = pd.Series(fcluster(Z, cut, "distance"), index=D.index); xx[f"c{cut}"] = c.reindex(xx.index)
     for label, flag in (("full", xx.cls == "full"), ("full or left-only", xx.cls.isin(["full", "left-only"]))):
-        inf = []
+        inf: list[tuple[Any, int, int, int, int]] = []
         for k, g in xx.groupby(f"c{cut}"):
             f = flag[g.index]; r = g.R
             if f.any() and (~f).any() and r.any() and (~r).any(): inf.append((k, int((f & r).sum()), int((f & ~r).sum()), int((~f & r).sum()), int((~f & ~r).sum())))
         print(f"\ncut {cut} SNPs, '{label}': informative strata {len(inf)}", end="")
-        for k, a, b, c_, e in inf: print(f"\n    stratum {k}: carriers R/S-I {a}/{b}, non-carriers {c_}/{e}; exact Fisher p = {fisher_exact([[a, b], [c_, e]])[1]:.3f}", end="")
+        for k, ia, ib, c_, e in inf: print(f"\n    stratum {k}: carriers R/S-I {ia}/{ib}, non-carriers {c_}/{e}; exact Fisher p = {fisher_exact(np.array([[ia, ib], [c_, e]]))[1]:.3f}", end="")
         print()

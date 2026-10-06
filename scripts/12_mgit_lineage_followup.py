@@ -1,6 +1,8 @@
 """Follow-up to script 11. The top MGIT amikacin-1 mg/L pattern (a block of genes identical across isolates) is a divergence-from-
 reference signal. Characterise it (block membership, ANI, variant-set distances) and test ANI against amikacin MIC in the
 independent MIC cohort (no isolate overlap for kansasii)."""
+from __future__ import annotations
+
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -33,7 +35,8 @@ ids = list(S); D = np.array([[len(S[a] ^ S[b]) for b in ids] for a in ids]); ix 
 cl = fcluster(linkage(squareform(D, checks=False), "average"), 1000, "distance")
 print(f"kansasii genomes {len(ids)}: {len(set(cl))} clusters at 1000 differing sites; largest {pd.Series(cl).value_counts().max()}")
 c = [n for n in kan if M.loc[n, KEY] == 1]; nc = [n for n in kan if M.loc[n, KEY] == 0]
-w = lambda a, b: np.mean([D[ix[x], ix[y]] for x in a for y in b if x != y])
+def w(a: list[int], b: list[int]) -> float:
+    return float(np.mean([D[ix[x], ix[y]] for x in a for y in b if x != y]))
 print(f"mean differing sites: carriers-carriers {w(c, c):.0f}, non-non {w(nc, nc):.0f}, carriers-non {w(c, nc):.0f}")
 
 # independent MIC cohort
@@ -42,7 +45,7 @@ ph["ani"] = ph.NR.map(s.gtdb_ani)
 print(f"\nMIC cohort kansasii isolates: {ph.NR.nunique()}, also in MGIT: {ph[ph.NR.isin(set(mg.NR))].NR.nunique()}")
 rows = []
 for drug, g in ph.groupby("antibiotic"):
-    g = g.drop_duplicates("NR"); r, p = spearmanr(g.ani, g.log2_mic); rows.append((drug, len(g), round(r, 2), round(p, 3)))
+    g = g.drop_duplicates("NR"); rho, p = spearmanr(g.ani, g.log2_mic); rows.append((drug, len(g), round(rho, 2), round(p, 3)))
 r = pd.DataFrame(rows, columns=["drug", "n", "spearman_ANI_vs_log2MIC", "p_unadj"]).sort_values("p_unadj"); r.to_csv(OUT / "mic_cohort_ani_vs_mic.csv", index=False)
 print(r.to_string(index=False))
 a = ph[ph.antibiotic == "Amikacin"].drop_duplicates("NR"); lo, hi = a[a.ani < 99.67], a[a.ani >= 99.67]

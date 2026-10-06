@@ -1,7 +1,11 @@
 """Which reference locus is the true EthA ortholog, and what does Mkan329-054 carry there (read evidence + own assembly)?"""
+from __future__ import annotations
+
 import pandas as pd
 from pathlib import Path
+from typing import Any
 from Bio import SeqIO, Align
+from Bio.SeqRecord import SeqRecord
 from Bio.Seq import Seq
 
 ROOT = Path("/shares/sander.imm.uzh/MM/kansasii"); OUT = ROOT / "output/gwas"
@@ -12,13 +16,14 @@ G = pd.read_csv(OUT / "candidate_gene_coords.csv"); E = G[(G.gene == "ethA") & (
 mtb = "".join(l.strip() for l in open(OUT / "ref/Mtb_ethA.faa") if not l.startswith(">"))
 al = Align.PairwiseAligner(); al.mode = "global"; al.substitution_matrix = Align.substitution_matrices.load("BLOSUM62")
 al.open_gap_score, al.extend_gap_score = -10, -0.5
-def ident(a, b):
+def ident(a: str, b: str) -> tuple[float, Any]:
     aln = al.align(a, b)[0]; n = m = 0
     for (a0, a1), (b0, b1) in zip(*aln.aligned):
         n += a1 - a0; m += sum(a[a0 + i] == b[b0 + i] for i in range(a1 - a0))
     return m / len(a), aln
-prot = {}
+prot: dict[str, tuple[str, Any]] = {}
 print(f"Mtb EthA length {len(mtb)}")
+r: Any
 for r in E.itertuples():
     s = genome[r.start - 1:r.end]; s = s if r.strand == "+" else str(Seq(s).reverse_complement())
     p = str(Seq(s).translate(table=11)); prot[r.locus] = (p, r)
@@ -28,7 +33,7 @@ best = max(prot, key=lambda k: ident(mtb, prot[k][0])[0])
 print("true EthA ortholog:", best)
 refp, r = prot[best]
 _, aln = ident(mtb, refp)
-m = {}
+m: dict[int, int] = {}
 for (a0, a1), (b0, b1) in zip(*aln.aligned):
     for i in range(a1 - a0): m[b0 + i + 1] = a0 + i + 1   # kansasii -> Mtb
 
@@ -36,7 +41,7 @@ for (a0, a1), (b0, b1) in zip(*aln.aligned):
 meta = pd.read_csv(ROOT / "data/imm/screening_map_results.csv", usecols=["PROBENNUMMER", "species", "NR"]).set_index("PROBENNUMMER")
 pers = [s for s in meta.index if meta.loc[s, "species"] == "persicum" and meta.loc[s, "NR"] not in (35, 113, 106, 10, 21)]
 print(f"\npersicum genomes (non-excluded): {len(pers)}")
-calls = {}
+calls: dict[str, pd.DataFrame] = {}
 for s in pers:
     t = pd.read_csv(RES / s / "5_typing/kansasii_snippy/snippy_out/snps.tab", sep="\t", dtype=str)
     t["POS"] = t.POS.astype(int)
@@ -53,16 +58,17 @@ for s in pers:
 
 # 2. own assembly: protein of each persicum genome best matching the ortholog
 print("\nEthA protein from each genome's own Bakta annotation vs the kansasii reference ortholog:")
-rows = []
+rows: list[tuple[str, tuple[int, float, list[str]] | None]] = []
 for s in pers:
-    best_rec, bs = None, -1
+    best_rec: SeqRecord | None = None
+    bs: float = -1
     for rec in SeqIO.parse(RES / s / f"2_annotation/{s}.faa", "fasta"):
         if 400 < len(rec.seq) < 600 and "monooxygenase" in rec.description.lower():
             sc = al.score(refp, str(rec.seq))
             if sc > bs: best_rec, bs = rec, sc
     if best_rec is None: rows.append((s, None)); continue
     p = str(best_rec.seq); i, a2 = ident(refp, p)
-    mm = []
+    mm: list[str] = []
     for (a0, a1), (b0, b1) in zip(*a2.aligned):
         for k in range(a1 - a0):
             if refp[a0 + k] != p[b0 + k]: mm.append(f"{refp[a0+k]}{a0+k+1}{p[b0+k]}")

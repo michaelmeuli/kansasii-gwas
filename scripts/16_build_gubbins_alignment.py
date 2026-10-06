@@ -1,5 +1,7 @@
 """Full-length chromosome alignment (NC_022663.1) of the 82 non-excluded kansasii genomes + the reference, from snippy snps.aligned.fa
 ('-' = no coverage, 'N' = low coverage; Gubbins treats both as missing). Writes output/gwas/gubbins/kansasii_chr_aln.fasta."""
+from __future__ import annotations
+
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -10,8 +12,8 @@ EXCL = {35, 113, 106, 10, 21}
 m = pd.read_csv(ROOT / "data/imm/screening_map_results.csv", usecols=["NR", "PROBENNUMMER", "species"])
 m = m[(m.species == "kansasii") & ~m.NR.isin(EXCL)].sort_values("NR")
 
-def read_chr(path):
-    seq, on = [], False
+def read_chr(path: Path) -> str:
+    seq: list[str] = []; on = False
     for l in open(path):
         if l.startswith(">"):
             if on: break
@@ -20,7 +22,7 @@ def read_chr(path):
     return "".join(seq)
 
 ref = str(next(SeqIO.parse(RES / "Mkan329-001/5_typing/kansasii_snippy/snippy_out/ref.fa", "fasta")).seq).upper()
-rows = []
+rows: list[tuple[str, float]] = []
 with open(OUT / "kansasii_chr_aln.fasta", "w") as f:
     f.write(f">Reference_ATCC12478\n{ref}\n")
     for n in m.PROBENNUMMER:

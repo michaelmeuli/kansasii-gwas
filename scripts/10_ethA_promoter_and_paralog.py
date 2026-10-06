@@ -1,5 +1,8 @@
 """(a) Verify 054's paralog (FCNCLM_03714) calls against its own assembly. (b) Test the ethA upstream change at 3145420
 (A>C) against ethionamide MIC across all isolates with MIC and NGS."""
+from __future__ import annotations
+
+from typing import Any
 import pandas as pd
 from pathlib import Path
 from Bio import SeqIO, Align
@@ -16,16 +19,18 @@ al.open_gap_score, al.extend_gap_score = -10, -0.5
 # (a) paralog protein from own assembly: 054 vs other persicum
 s = genome[4126237:4127734]; refp = str(Seq(str(Seq(s).reverse_complement())).translate(table=11))
 pers = [x for x in meta.index if meta.loc[x, "species"] == "persicum" and meta.loc[x, "NR"] not in (35, 113, 106, 10, 21)]
-prots = {}
+prots: dict[str, str] = {}
 for x in pers:
-    best, bs = None, -1
+    best: str | None = None
+    bs: float = -1
     for rec in SeqIO.parse(RES / x / f"2_annotation/{x}.faa", "fasta"):
         if 400 < len(rec.seq) < 600:
             sc = al.score(refp, str(rec.seq))
             if sc > bs: best, bs = str(rec.seq), sc
+    if best is None: raise SystemExit(f"no paralog protein candidate in the annotation of {x}")
     prots[x] = best
-def diffs(a, b):
-    aln = al.align(a, b)[0]; d = []
+def diffs(a: str, b: str) -> list[str]:
+    aln = al.align(a, b)[0]; d: list[str] = []
     for (a0, a1), (b0, b1) in zip(*aln.aligned):
         d += [f"{a[a0+i]}{a0+i+1}{b[b0+i]}" for i in range(a1 - a0) if a[a0 + i] != b[b0 + i]]
     return d
@@ -38,7 +43,8 @@ print("kansasii-ref paralog vs 009:", len(diffs(refp, ref_other)), "differences"
 
 # (b) 3145420 A>C across all genomes with MIC
 pheno = pd.read_csv(OUT / "geno_pheno_table_long.csv"); pheno = pheno[pheno.has_ngs & ~pheno.excluded & pheno.antibiotic.eq("Ethionamid")].drop_duplicates("NR")
-carr = {}
+carr: dict[str, str] = {}
+r: Any
 for x in pheno.PROBENNUMMER:
     t = pd.read_csv(RES / x / "5_typing/kansasii_snippy/snippy_out/snps.tab", sep="\t", dtype=str, usecols=["CHROM", "POS", "REF", "ALT"])
     t["POS"] = t.POS.astype(int); h = t[(t.CHROM == "NC_022663.1") & (t.POS == 3145420)]

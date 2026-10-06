@@ -1,5 +1,8 @@
 """Is the divergence of RsmA/RsmI persicum-like alleles unusual? Protein identity between the kansasii reference and a full-segment carrier (Mkan329-001)
 for all 59 genes of the segment, plus a check of the SAM-binding (GxGxG) motif region in each allele."""
+from __future__ import annotations
+
+from typing import Any
 import re
 import numpy as np
 import pandas as pd
@@ -12,10 +15,11 @@ ref = {r.id: str(r.seq) for r in SeqIO.parse(REFFAA, "fasta")}
 genes = pd.read_csv(G / "boundaries/segment_genes.csv")
 al = Align.PairwiseAligner(); al.mode = "global"; al.substitution_matrix = Align.substitution_matrices.load("BLOSUM62"); al.open_gap_score, al.extend_gap_score = -10, -0.5
 iso = {r.id: str(r.seq) for r in SeqIO.parse(RES / "Mkan329-001/2_annotation/Mkan329-001.faa", "fasta")}
-def ident(a, b):
+def ident(a: str, b: str) -> float:
     aln = al.align(a, b)[0]; m = sum(a[a0 + i] == b[b0 + i] for (a0, a1), (b0, b1) in zip(*aln.aligned) for i in range(a1 - a0))
     return m / max(len(a), len(b))
-rows = []
+rows: list[dict[str, Any]] = []
+r: Any
 for r in genes.itertuples():
     a = ref.get(r.locus)
     if not a: continue

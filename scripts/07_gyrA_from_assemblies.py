@@ -1,4 +1,7 @@
 """gyrA QRDR residues (Mtb numbering) read from each isolate's own Bakta protein annotation (no reference mapping)."""
+from __future__ import annotations
+
+from typing import Any
 import pandas as pd
 from pathlib import Path
 from Bio import SeqIO, Align
@@ -10,7 +13,7 @@ al = Align.PairwiseAligner(); al.mode = "global"; al.substitution_matrix = Align
 al.open_gap_score, al.extend_gap_score = -10, -0.5
 sites = [74, 88, 89, 90, 91, 94]   # QRDR residues, Mtb numbering (wt A90, D94 verified earlier)
 sp = pd.read_csv(ROOT / "data/imm/screening_map_results.csv", usecols=["PROBENNUMMER", "species", "NR"]).set_index("PROBENNUMMER")
-rows = []
+rows: list[dict[str, Any]] = []
 for d in sorted(RES.glob("Mkan329-*")):
     faa = d / f"2_annotation/{d.name}.faa"
     if not faa.exists():
@@ -21,7 +24,7 @@ for d in sorted(RES.glob("Mkan329-*")):
     best = max(cands, key=lambda r: al.score(mtb[:300], str(r.seq)[:400]))
     p = str(best.seq)
     aln = al.align(mtb, p)[0]
-    m = {}
+    m: dict[int, int] = {}
     for (a0, a1), (b0, b1) in zip(*aln.aligned):
         for i in range(a1 - a0):
             m[a0 + i + 1] = b0 + i + 1

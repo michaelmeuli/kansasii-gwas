@@ -1,5 +1,8 @@
 """Region FCNCLM_01713..01736 (NC_022663.1:1,944,065-1,970,050). Count variants vs the reference in this 26 kb region per kansasii genome,
 classify divergent-haplotype (>50 variants) vs reference-like, and test against amikacin in MGIT (35 kansasii) and in the independent MIC cohort."""
+from __future__ import annotations
+
+from typing import cast
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -9,7 +12,7 @@ ROOT = Path("/shares/sander.imm.uzh/MM/kansasii"); G = ROOT / "output/gwas"; RES
 LO, HI = 1944065, 1970050
 lin = pd.read_csv(G / "lineage/kansasii_clades.csv", index_col=0)
 names = list(lin.index)
-V = {}
+V: dict[str, set[tuple[int, str, str]]] = {}
 for s in names:
     t = pd.read_csv(RES / s / "5_typing/kansasii_snippy/snippy_out/snps.tab", sep="\t", dtype=str, usecols=["CHROM", "POS", "REF", "ALT"])
     t["POS"] = t.POS.astype(int); t = t[(t.CHROM == "NC_022663.1") & (t.POS >= LO) & (t.POS <= HI)]
@@ -29,7 +32,7 @@ mg = pd.read_csv(ROOT / "output/mic/mgit/mgit_parsed.csv")
 ak = mg[(mg.antibiotic == "Amikacin") & (mg.concentration_mg_l == 1.0) & mg.erg.isin(["R", "I", "S"])].drop_duplicates("NR").set_index("NR").erg
 x = lin[lin.NR.isin(ak.index)].copy(); x["R"] = ak.reindex(x.NR).values == "R"
 t = pd.crosstab(x.haplotype, x.R); print("\nMGIT amikacin 1 mg/L, all kansasii (R = True):\n", t.to_string())
-tab = [[int(t.loc["divergent", True]), int(t.loc["divergent", False])], [int(t.loc["ref-like", True]), int(t.loc["ref-like", False])]]
+tab = np.array([[int(cast(int, t.loc["divergent", True])), int(cast(int, t.loc["divergent", False]))], [int(cast(int, t.loc["ref-like", True])), int(cast(int, t.loc["ref-like", False]))]])
 print(f"  Fisher p = {fisher_exact(tab)[1]:.4f}")
 for c in ("A", "B"):
     y = x[x.clade == c]; tt = pd.crosstab(y.haplotype, y.R); print(f"  clade {c}:\n{tt.to_string()}")

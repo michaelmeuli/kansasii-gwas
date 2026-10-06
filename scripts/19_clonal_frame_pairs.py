@@ -1,5 +1,8 @@
 """Association controlled for the clonal frame: among isolates with an amikacin 1 mg/L MGIT result, find nearest relatives in the Gubbins
 recombination-filtered tree and ask whether pairs that differ in region haplotype also differ in phenotype."""
+from __future__ import annotations
+
+from typing import Any
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -7,7 +10,7 @@ from Bio import Phylo
 from scipy.stats import binomtest
 
 ROOT = Path("/shares/sander.imm.uzh/MM/kansasii"); G = ROOT / "output/gwas"
-T = Phylo.read(G / "gubbins/kansasii_gubbins.final_tree.tre", "newick")
+T = Phylo.read(G / "gubbins/kansasii_gubbins.final_tree.tre", "newick")  # type: ignore[attr-defined,no-untyped-call]
 h = pd.read_csv(G / "lineage/kansasii_region_haplotype.csv", index_col=0)
 mg = pd.read_csv(ROOT / "output/mic/mgit/mgit_parsed.csv")
 ak = mg[(mg.antibiotic == "Amikacin") & (mg.concentration_mg_l == 1.0) & mg.erg.isin(["R", "I", "S"])].drop_duplicates("NR").set_index("NR").erg
@@ -16,14 +19,15 @@ ids = list(x.index); D = pd.DataFrame([[T.distance(a, b) for b in ids] for a in 
 print(f"{len(ids)} phenotyped kansasii: R {int(x.R.sum())}, S/I {int((~x.R).sum())}; haplotype-880 {int(x.H880.sum())}")
 print("\nphylogenetic signal of the phenotype (filtered-tree distances, SNPs):")
 R_ = [i for i in ids if x.R[i]]; N_ = [i for i in ids if not x.R[i]]
-w = lambda a, b: np.mean([D.loc[i, j] for i in a for j in b if i != j])
+def w(a: list[str], b: list[str]) -> float:
+    return float(np.mean([D.loc[i, j] for i in a for j in b if i != j]))
 print(f"  R-R {w(R_, R_):.0f} | S/I-S/I {w(N_, N_):.0f} | R-S/I {w(R_, N_):.0f}")
 print("\nnearest phenotyped relative of each isolate:")
-rows = []
+rows: list[dict[str, Any]] = []
 for i in ids:
     j = D.loc[i].drop(i).idxmin(); rows.append(dict(isolate=i, hap=str(x.hap[i]), ak=x.ak[i], nearest=j, dist=round(D.loc[i, j]), nearest_hap=str(x.hap[j]), nearest_ak=x.ak[j]))
 nn = pd.DataFrame(rows); print(nn.to_string(index=False))
-pairs = {tuple(sorted((r.isolate, r.nearest))) for r in nn.itertuples()}
+pairs = {tuple(sorted((i_, j_))) for i_, j_ in zip(nn.isolate.tolist(), nn.nearest.tolist())}
 disc = [(a, b) for a, b in pairs if x.H880[a] != x.H880[b]]
 print(f"\nunique nearest-neighbour pairs: {len(pairs)}; pairs discordant for haplotype-880: {len(disc)}")
 conc = 0

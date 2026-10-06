@@ -1,5 +1,8 @@
 """Hotspot check. Map kansasii (Bakta) residues/bases to M. tuberculosis (proteins) or E. coli (rRNA) numbering by
 alignment, verify the expected wild-type residue at each hotspot, then tabulate each isolate's state and MIC."""
+from __future__ import annotations
+
+from typing import Any
 import re
 import pandas as pd
 from pathlib import Path
@@ -26,7 +29,7 @@ DRUG = {"gyrA": ["Ciprofloxacin", "Moxifloxacin"], "gyrB": ["Ciprofloxacin", "Mo
         "rpoB": ["Rifampicin", "Rifabutin"], "embB": ["Ethambutol"], "katG": ["Isoniazid"],
         "rpsL": ["Streptomycin"], "rplC": ["Linezolid"]}
 
-def kan_prot(name):
+def kan_prot(name: str) -> tuple[str, Any]:
     r = G[G.gene == name].iloc[0]
     s = genome[r.start - 1:r.end]
     s = s if r.strand == "+" else str(Seq(s).reverse_complement())
@@ -35,10 +38,10 @@ def kan_prot(name):
 al = Align.PairwiseAligner(); al.mode = "global"; al.substitution_matrix = Align.substitution_matrices.load("BLOSUM62")
 al.open_gap_score, al.extend_gap_score = -10, -0.5
 
-def pos_map(a, b):
+def pos_map(a: str, b: str) -> dict[int, int]:
     """map positions of a -> positions of b (1-based) from the best alignment"""
     aln = al.align(a, b)[0]
-    m = {}
+    m: dict[int, int] = {}
     for (s1, e1), (s2, e2) in zip(*aln.aligned):
         for i in range(e1 - s1):
             m[s1 + i + 1] = s2 + i + 1
@@ -48,7 +51,8 @@ feat = pd.read_csv(OUT / "candidate_features_per_sample.csv")
 feat["features"] = feat.features.apply(eval)
 pheno = pd.read_csv(OUT / "geno_pheno_table_long.csv")
 sp = pd.read_csv(ROOT / "data/imm/screening_map_results.csv", usecols=["PROBENNUMMER", "species"]).set_index("PROBENNUMMER").species
-check, rows = [], []
+check: list[dict[str, Any]] = []
+rows: list[dict[str, Any]] = []
 for gene, hs in HOT.items():
     mtb = "".join(l.strip() for l in open(REF / f"Mtb_{gene}.faa") if not l.startswith(">"))
     kan, r = kan_prot(gene)

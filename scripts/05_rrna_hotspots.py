@@ -1,4 +1,7 @@
 """rRNA hotspot check in E. coli numbering: rrl A2058/A2059 (macrolides), rrs A1408 (aminoglycosides)."""
+from __future__ import annotations
+
+from typing import Any
 import pandas as pd
 from pathlib import Path
 from Bio import SeqIO, Align
@@ -17,9 +20,9 @@ feat = pd.read_csv(OUT / "candidate_features_per_sample.csv"); feat["features"] 
 sp = pd.read_csv(ROOT / "data/imm/screening_map_results.csv", usecols=["PROBENNUMMER", "species"]).set_index("PROBENNUMMER").species
 HOT = {"rrl": (ec23, {2057: "G", 2058: "A", 2059: "A", 2503: "A", 2611: "C"}), "rrs": (ec16, {1408: "A", 1409: "A", 1491: "G"})}
 for gene, (ecseq, sites) in HOT.items():
-    r = G.loc[gene]; kan = genome[r.start - 1:r.end]; kan = kan if r.strand == "+" else str(Seq(kan).reverse_complement())
+    r: Any = G.loc[gene]; kan = genome[r.start - 1:r.end]; kan = kan if r.strand == "+" else str(Seq(kan).reverse_complement())
     aln = al.align(ecseq, kan)[0]
-    m = {}
+    m: dict[int, int] = {}
     for (a0, a1), (b0, b1) in zip(*aln.aligned):
         for i in range(a1 - a0):
             m[a0 + i + 1] = b0 + i + 1

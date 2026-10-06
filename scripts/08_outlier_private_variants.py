@@ -1,6 +1,9 @@
 """Variants carried by an MIC-outlier isolate but by no other genome of the same GTDB species (and, as a looser
 tier, by at most one other). Annotated against the Bakta annotation of the reference; multi-base calls split per
 base and merged per codon. Background = all same-species genomes (not only the ones with MIC), minus contaminated cultures."""
+from __future__ import annotations
+
+from typing import Any
 import re
 import pandas as pd
 from pathlib import Path
@@ -17,25 +20,25 @@ FOCAL = {"Mkan329-054": "persicum", "Mkan329-055": "persicum", "Mkan329-047": "k
          "Mkan329-050": "kansasii", "Mkan329-009": "persicum", "Mkan329-008": "innocens"}
 genome = {CONTIG[r.id]: str(r.seq) for r in SeqIO.parse(REFDIR / "GCF_000157895.3_query.fna", "fasta")}
 
-feats = []
+feats: list[tuple[str, int, int, str, str, str, str, str]] = []
 for l in open(REFDIR / "GCF_000157895.3_query.gff3"):
     if l.startswith("#"): continue
     f = l.rstrip("\n").split("\t")
     if len(f) < 9 or f[2] not in ("CDS", "rRNA", "tRNA", "ncRNA"): continue
-    a = dict(kv.split("=", 1) for kv in f[8].split(";") if "=" in kv)
-    feats.append((CONTIG[f[0]], int(f[3]), int(f[4]), f[6], f[2], a.get("gene", ""), a.get("product", ""), a.get("locus_tag", "")))
-byc = defaultdict(list)
+    attrs = dict(kv.split("=", 1) for kv in f[8].split(";") if "=" in kv)
+    feats.append((CONTIG[f[0]], int(f[3]), int(f[4]), f[6], f[2], attrs.get("gene", ""), attrs.get("product", ""), attrs.get("locus_tag", "")))
+byc: defaultdict[str, list[tuple[str, int, int, str, str, str, str, str]]] = defaultdict(list)
 for x in feats: byc[x[0]].append(x)
 for c in byc: byc[c].sort(key=lambda x: x[1])
 
-def hit(chrom, pos):
+def hit(chrom: str, pos: int) -> tuple[str, int, int, str, str, str, str, str] | None:
     for x in byc[chrom]:
         if x[1] <= pos <= x[2]: return x
         if x[1] > pos: break
     return None
 
 meta = pd.read_csv(ROOT / "data/imm/screening_map_results.csv", usecols=["PROBENNUMMER", "NR", "species"]).set_index("PROBENNUMMER")
-sets = {}
+sets: dict[str, set[tuple[str, int, str, str, str]]] = {}
 for tab in sorted(RES.glob("Mkan329-*/5_typing/kansasii_snippy/snippy_out/snps.tab")):
     s = tab.parts[-5]
     if s not in meta.index or pd.isna(meta.loc[s, "species"]) or meta.loc[s, "NR"] in EXCL: continue
@@ -44,7 +47,7 @@ for tab in sorted(RES.glob("Mkan329-*/5_typing/kansasii_snippy/snippy_out/snps.t
 species = {s: meta.loc[s, "species"] for s in sets}
 print("genomes:", len(sets), pd.Series(species).value_counts().to_dict())
 
-def describe(chrom, pos, typ, ref, alt):
+def describe(chrom: str, pos: int, typ: str, ref: str, alt: str) -> tuple[str, str, str, str]:
     x = hit(chrom, pos)
     if x is None: return "intergenic", "", "", ""
     _, st, en, strand, ft, gene, prod, lt = x
@@ -52,13 +55,13 @@ def describe(chrom, pos, typ, ref, alt):
     if typ in ("ins", "del"): return ("frameshift" if abs(len(alt) - len(ref)) % 3 else "inframe_indel"), gene, prod, lt
     if len(ref) != len(alt): return "complex_indel", gene, prod, lt
     cds = genome[chrom][st - 1:en]; cds = cds if strand == "+" else str(Seq(cds).reverse_complement())
-    subs = {}
+    subs: dict[int, list[tuple[int, str]]] = {}
     for i, (r, a) in enumerate(zip(ref, alt)):
         if r == a or not st <= pos + i <= en: continue
         off = pos + i - st if strand == "+" else en - (pos + i)
         a2 = a if strand == "+" else str(Seq(a).reverse_complement())
         subs.setdefault(off // 3, []).append((off % 3, a2))
-    out = []
+    out: list[str] = []
     for ci, lst in subs.items():
         c0 = cds[ci * 3:ci * 3 + 3]; c1 = list(c0)
         for k, a in lst: c1[k] = a
@@ -68,10 +71,10 @@ def describe(chrom, pos, typ, ref, alt):
     if "*" in eff.split(str(ci + 1))[-1:][0] or re.search(r"\d+\*", eff): eff = eff + " STOP_GAINED"
     return eff, gene, prod, lt
 
-rows = []
+rows: list[dict[str, Any]] = []
 for foc, sp in FOCAL.items():
     others = [s for s in sets if species[s] == sp and s != foc]
-    cnt = defaultdict(int)
+    cnt: defaultdict[tuple[str, int, str, str, str], int] = defaultdict(int)
     for s in others:
         for v in sets[s]: cnt[v] += 1
     for v in sets[foc]:

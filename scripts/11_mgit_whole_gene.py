@@ -1,8 +1,13 @@
 """MGIT whole-gene association. Per gene: carries >=1 protein-altering variant (aa change, frameshift, inframe indel, stop),
 any rRNA/ncRNA variant, or any variant in the 150 bp upstream region. Fisher exact within species; BH over distinct
 carrier patterns; block size = number of genes sharing a pattern (large block = lineage marker, not a gene-specific effect)."""
+from __future__ import annotations
+
 import re
+from collections.abc import Iterator
+from typing import Any, cast
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 from bisect import bisect_right
 from pathlib import Path
@@ -21,34 +26,36 @@ UP = 150
 genome = {CONTIG[r.id]: str(r.seq) for r in SeqIO.parse(REFDIR / "GCF_000157895.3_query.fna", "fasta")}
 
 # ---- annotation
-genes = []
+gene_rows: list[dict[str, Any]] = []
 for l in open(REFDIR / "GCF_000157895.3_query.gff3"):
     if l.startswith("#"): continue
     f = l.rstrip("\n").split("\t")
     if len(f) < 9 or f[2] not in ("CDS", "rRNA", "tRNA", "ncRNA"): continue
-    a = dict(kv.split("=", 1) for kv in f[8].split(";") if "=" in kv)
-    genes.append(dict(chrom=CONTIG[f[0]], start=int(f[3]), end=int(f[4]), strand=f[6], ftype=f[2],
-                      gene=a.get("gene", ""), locus=a.get("locus_tag", ""), product=a.get("product", "")))
-genes = pd.DataFrame(genes).sort_values(["chrom", "start"]).reset_index(drop=True)
-cds_seq = {}
-for i, g in genes.iterrows():
+    attrs = dict(kv.split("=", 1) for kv in f[8].split(";") if "=" in kv)
+    gene_rows.append(dict(chrom=CONTIG[f[0]], start=int(f[3]), end=int(f[4]), strand=f[6], ftype=f[2],
+                      gene=attrs.get("gene", ""), locus=attrs.get("locus_tag", ""), product=attrs.get("product", "")))
+genes = pd.DataFrame(gene_rows).sort_values(["chrom", "start"]).reset_index(drop=True)
+cds_seq: dict[int, str] = {}
+for i_, g in genes.iterrows():
+    i = cast(int, i_)
     if g.ftype == "CDS":
         s = genome[g.chrom][g.start - 1:g.end]; cds_seq[i] = s if g.strand == "+" else str(Seq(s).reverse_complement())
 idx = {c: (genes[genes.chrom == c].index.to_numpy(), genes[genes.chrom == c].start.to_numpy()) for c in genes.chrom.unique()}
-def coding_hit(chrom, pos):
+def coding_hit(chrom: str, pos: int) -> int | None:
     ids, starts = idx[chrom]; k = bisect_right(starts, pos) - 1
     for j in range(k, max(k - 4, -1), -1):
         g = genes.loc[ids[j]]
-        if g.start <= pos <= g.end: return ids[j]
+        if g.start <= pos <= g.end: return int(ids[j])
     return None
-prom = defaultdict(list)   # chrom -> (lo, hi, gene index) for CDS upstream regions
-for i, g in genes.iterrows():
+prom: defaultdict[str, list[tuple[int, int, int]]] = defaultdict(list)   # chrom -> (lo, hi, gene index) for CDS upstream regions
+for i_, g in genes.iterrows():
+    i = cast(int, i_)
     if g.ftype != "CDS": continue
     lo, hi = (g.start - UP, g.start - 1) if g.strand == "+" else (g.end + 1, g.end + UP)
     prom[g.chrom].append((lo, hi, i))
-for c in prom: prom[c].sort()
+for ch in prom: prom[ch].sort()
 plo = {c: np.array([x[0] for x in v]) for c, v in prom.items()}
-def prom_hit(chrom, pos):
+def prom_hit(chrom: str, pos: int) -> int | None:
     k = bisect_right(plo[chrom], pos) - 1
     for j in range(k, max(k - 6, -1), -1):
         lo, hi, i = prom[chrom][j]
@@ -56,9 +63,10 @@ def prom_hit(chrom, pos):
     return None
 
 # ---- per-isolate gene calls
-def gene_calls(snps):
+def gene_calls(snps: pd.DataFrame) -> set[tuple[int, str]]:
     """snps: DataFrame CHROM,POS,TYPE,REF,ALT -> set of (gene_idx, kind) with kind in prot/rna/prom"""
-    out, codon = set(), defaultdict(lambda: defaultdict(list))
+    out: set[tuple[int, str]] = set()
+    codon: defaultdict[int, defaultdict[int, list[tuple[int, str]]]] = defaultdict(lambda: defaultdict(list))
     for chrom, pos, typ, ref, alt in snps.itertuples(index=False):
         h = coding_hit(chrom, pos)
         if h is None:
@@ -90,16 +98,16 @@ mg = pd.read_csv(ROOT / "output/mic/mgit/mgit_parsed.csv").merge(meta[["NR", "sp
 mg = mg[mg.species.notna() & ~mg.NR.isin(EXCL) & ~mg.species.isin(CTRL)].copy()
 samples = meta.set_index("NR").loc[sorted(mg.NR.unique()), "PROBENNUMMER"].to_dict()
 print("usable MGIT isolates:", len(samples), flush=True)
-calls = {}
+calls: dict[int, set[tuple[int, str]]] = {}
 for nr, s in samples.items():
     t = pd.read_csv(RES / s / "5_typing/kansasii_snippy/snippy_out/snps.tab", sep="\t", dtype=str, usecols=["CHROM", "POS", "TYPE", "REF", "ALT"])
     t["POS"] = t.POS.astype(int)
     calls[nr] = gene_calls(t[["CHROM", "POS", "REF", "TYPE", "ALT"]].rename(columns={"TYPE": "T"})[["CHROM", "POS", "T", "REF", "ALT"]])
     print(" ", s, len(t), "variants ->", len(calls[nr]), "gene calls", flush=True)
 
-feat = {}   # (gene_idx, kind) -> {nr: 1}
+feat: dict[tuple[int, str], set[int]] = {}   # (gene_idx, kind) -> {nr: 1}
 for nr, cs in calls.items():
-    for c in cs: feat.setdefault(c, set()).add(nr)
+    for gk in cs: feat.setdefault(gk, set()).add(nr)
 nrs = sorted(samples)
 M = pd.DataFrame({f"{genes.locus[g]}|{genes.gene[g]}|{k}": [int(n in v) for n in nrs] for (g, k), v in feat.items()}, index=nrs)
 M.to_csv(OUT / "gene_matrix.csv")
@@ -108,8 +116,9 @@ print("gene-level features:", M.shape, flush=True)
 # ---- phenotypes
 mg["R"] = (mg.erg == "R").astype(int)
 mg = mg[mg.erg.isin(["S", "I", "R"])]
-def tests():
-    for (drug, conc), d in mg.groupby(["antibiotic", "concentration_mg_l"]):
+def tests() -> Iterator[tuple[str, float, str, str, npt.NDArray[Any], npt.NDArray[Any]]]:
+    for key, d in mg.groupby(["antibiotic", "concentration_mg_l"]):
+        drug, conc = cast("tuple[str, float]", key)
         for sp in ["kansasii", "persicum"]:
             x = d[d.species == sp].drop_duplicates("NR")
             for name, y in [("R_vs_SI", x.R), ("R_vs_S", x.R[x.erg != "I"])]:
@@ -120,12 +129,12 @@ KNOWN = re.compile(r"eis|whiB7|WhiB7|aminoglycoside|16S|rrs|rpsL|streptomycin|ac
 for drug, conc, sp, name, ids, y in tests():
     sub = M.loc[ids]
     ph.append(dict(drug=drug, conc=conc, species=sp, contrast=name, n_R=int(y.sum()), n_nonR=int((y == 0).sum())))
-    pats = {}
+    pats: dict[tuple[Any, ...], list[tuple[Any, ...]]] = {}
     for col in sub.columns:
         v = sub[col].to_numpy(); c1 = int(v[y == 1].sum()); c0 = int(v[y == 0].sum())
         a, b, c, d_ = c1, int((y == 1).sum()) - c1, c0, int((y == 0).sum()) - c0
         if a + c < 2 or b + d_ < 2: continue
-        _, p = fisher_exact([[a, b], [c, d_]])
+        _, p = fisher_exact(np.array([[a, b], [c, d_]]))
         pats.setdefault(tuple(v), []).append((col, a, b, c, d_, p))
     allp = np.array([v[0][5] for v in pats.values()])
     o = np.argsort(allp); q = np.empty(len(allp)); n = len(allp)
@@ -138,8 +147,8 @@ pd.DataFrame(ph).to_csv(OUT / "mgit_tests_run.csv", index=False)
 res = pd.DataFrame(rows).sort_values("p"); res.to_csv(OUT / "mgit_gene_tests.csv", index=False)
 print("\ntests run:\n", pd.DataFrame(ph).to_string(index=False))
 pd.set_option("display.width", 250); pd.set_option("display.max_colwidth", 50)
-for key, g in res.groupby(["drug", "conc", "species", "contrast"]):
-    print(f"\n=== {key}: patterns tested {g.n_patterns.iloc[0]}, min q {g.q_bh_patterns.min():.3f}")
-    print(g.sort_values("p").head(8)[["feature", "R_carriers", "R_noncarriers", "nonR_carriers", "nonR_noncarriers", "p", "q_bh_patterns", "block_size"]].round(4).to_string(index=False))
-    kn = g[g.feature.str.contains(KNOWN)].sort_values("p").head(6)
+for key, gr in res.groupby(["drug", "conc", "species", "contrast"]):
+    print(f"\n=== {key}: patterns tested {gr.n_patterns.iloc[0]}, min q {gr.q_bh_patterns.min():.3f}")
+    print(gr.sort_values("p").head(8)[["feature", "R_carriers", "R_noncarriers", "nonR_carriers", "nonR_noncarriers", "p", "q_bh_patterns", "block_size"]].round(4).to_string(index=False))
+    kn = gr[gr.feature.str.contains(KNOWN)].sort_values("p").head(6)
     if len(kn): print("  known amikacin/aminoglycoside-related genes:\n", kn[["feature", "R_carriers", "R_noncarriers", "nonR_carriers", "nonR_noncarriers", "p", "block_size"]].round(4).to_string(index=False))

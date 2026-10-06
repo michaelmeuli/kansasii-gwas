@@ -2,6 +2,10 @@
 Features: codon-level amino-acid changes (multi-base snippy calls split per base and merged per codon),
 rRNA nucleotide changes, and per-gene frameshift/indel flags. Carrier = differs from reference at that feature;
 polarity is irrelevant here because only sites segregating inside a species are tested."""
+from __future__ import annotations
+
+from typing import Any
+import numpy.typing as npt
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -22,23 +26,25 @@ RELEVANT = {"Ciprofloxacin": ["gyrA", "gyrB"], "Moxifloxacin": ["gyrA", "gyrB"],
             "Ethionamid": ["ethA", "ethR", "inhA"], "Streptomycin": ["rpsL", "rrs"], "Amikacin": ["rrs"],
             "Clarithromycin": ["rrl"], "Linezolid": ["rplC", "rrl"], "Sulfamethoxazole/Trimethoprim": ["folP"]}
 
-def per_base(row):
+def per_base(row: Any) -> list[tuple[int, str, str]] | None:
     """Yield (pos, ref, alt) single-base substitutions; None for length-changing calls."""
     if len(row.REF) != len(row.ALT):
         return None
     return [(row.POS + i, r, a) for i, (r, a) in enumerate(zip(row.REF, row.ALT)) if r != a]
 
-feats = {}   # sample -> set of feature strings
+g: Any
+v: Any
+feats: dict[str, set[str]] = {}   # sample -> set of feature strings
 for tab in sorted(RES.glob("Mkan329-*/5_typing/kansasii_snippy/snippy_out/snps.tab")):
     sample = tab.parts[-5]
     t = pd.read_csv(tab, sep="\t", dtype=str, usecols=["CHROM", "POS", "TYPE", "REF", "ALT"])
     t["POS"] = t.POS.astype(int)
-    fs = set()
+    fs: set[str] = set()
     for g in genes.itertuples():
         sub = t[(t.CHROM == g.chrom) & (t.POS >= g.start) & (t.POS <= g.end)]
         if sub.empty:
             continue
-        codon_subs = {}
+        codon_subs: dict[int, list[tuple[int, str]]] = {}
         for v in sub.itertuples():
             subs = per_base(v)
             if subs is None:
@@ -75,7 +81,7 @@ pheno = pheno[pheno.has_ngs & ~pheno.excluded]
 all_feats = sorted({f for s in feats.values() for f in s})
 print("samples", len(feats), "| distinct candidate features", len(all_feats))
 
-rows = []
+rows: list[dict[str, Any]] = []
 for sp_label, sdf in [("kansasii", pheno[pheno.gtdb_species == "kansasii"]),
                       ("persicum", pheno[pheno.gtdb_species == "persicum"]),
                       ("pooled_species_centred", pheno)]:
@@ -96,10 +102,10 @@ for sp_label, sdf in [("kansasii", pheno[pheno.gtdb_species == "kansasii"]),
             rows.append(dict(subset=sp_label, drug=drug, feature=f, n_carrier=n1, n_noncarrier=n0,
                              median_carrier=y1.median(), median_noncarrier=y0.median(),
                              delta_log2=y1.mean() - y0.mean(), p=p,
-                             relevant_gene=gene in RELEVANT.get(drug, [])))
+                             relevant_gene=gene in RELEVANT.get(str(drug), [])))
 res = pd.DataFrame(rows)
 
-def bh(p):
+def bh(p: Any) -> npt.NDArray[np.float64]:
     p = np.asarray(p); n = len(p); o = np.argsort(p); q = np.empty(n)
     q[o] = np.minimum.accumulate((p[o] * n / (np.arange(n) + 1))[::-1])[::-1]
     return np.minimum(q, 1)

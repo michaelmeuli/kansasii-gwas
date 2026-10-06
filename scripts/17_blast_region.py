@@ -1,9 +1,12 @@
 """BLAST the three haplotypes of the 26 kb region (NC_022663.1:1,944,065-1,970,050) against the 72 public M. kansasii-complex genomes.
 Queries: H880 (Mkan329-101), H211 (Mkan329-005), reference-like (reference sequence). For each query and subject genome: query bases covered by a
 non-overlapping chain of HSPs and the identity over those bases."""
+from __future__ import annotations
+
 import subprocess
 import pandas as pd
 from pathlib import Path
+from typing import cast
 from Bio import SeqIO
 
 ROOT = Path("/shares/sander.imm.uzh/MM/kansasii"); OUT = ROOT / "output/gwas/blast"; OUT.mkdir(exist_ok=True)
@@ -12,7 +15,7 @@ PUB = ROOT / "data/gtdb_genomes/Mycobacteriaceae/mlsa-kansasii"
 LO, HI = 1944065, 1970050
 ref = str(next(SeqIO.parse(RES / "Mkan329-001/5_typing/kansasii_snippy/snippy_out/ref.fa", "fasta")).seq).upper()
 refseg = ref[LO - 1:HI]
-def hap_from_assembly(sample):
+def hap_from_assembly(sample: str) -> str:
     """Extract the region from the isolate's own assembly: BLAST the reference segment, take the contig with most aligned bases and span its hits."""
     fa = RES / sample / f"1_unicycler/{sample}.fasta"
     tmp = OUT / f"tmp_{sample}"; tmp.mkdir(exist_ok=True)
@@ -48,12 +51,14 @@ subprocess.run(["blastn", "-query", str(OUT / "queries.fasta"), "-db", str(OUT /
 h = pd.read_csv(OUT / "hits.tsv", sep="\t", names="q s pident length qs qe ss se bits".split())
 h[["species", "genome", "contig"]] = h.s.str.split("|", expand=True)
 rows = []
-for (qq, sp, g), d in h.groupby(["q", "species", "genome"]):
-    cov = []; ident = 0.0; covered = 0
-    for r in d.sort_values("bits", ascending=False).itertuples():
-        a, b = min(r.qs, r.qe), max(r.qs, r.qe)
+for key, d in h.groupby(["q", "species", "genome"]):
+    qq, sp, g = cast("tuple[str, str, str]", key)
+    cov: list[tuple[int, int]] = []; ident = 0.0; covered = 0
+    by_bits = d.sort_values("bits", ascending=False)
+    for qs_, qe_, pident_ in zip(by_bits["qs"].tolist(), by_bits["qe"].tolist(), by_bits["pident"].tolist()):
+        a, b = min(qs_, qe_), max(qs_, qe_)
         if any(not (b < x or a > y) for x, y in cov): continue
-        cov.append((a, b)); covered += b - a + 1; ident += r.pident * (b - a + 1)
+        cov.append((a, b)); covered += b - a + 1; ident += pident_ * (b - a + 1)
     rows.append(dict(query=qq, species=sp, genome=g, covered_bp=covered, cov_frac=covered / len(q[qq]), identity=ident / covered if covered else float("nan"), n_hsp=len(cov)))
 R = pd.DataFrame(rows); R.to_csv(OUT / "per_genome_summary.csv", index=False)
 pd.set_option("display.width", 200)
