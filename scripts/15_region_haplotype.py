@@ -2,13 +2,14 @@
 classify divergent-haplotype (>50 variants) vs reference-like, and test against amikacin in MGIT (35 kansasii) and in the independent MIC cohort."""
 from __future__ import annotations
 
+import os
 from typing import cast
 import numpy as np
 import pandas as pd
 from pathlib import Path
 from scipy.stats import fisher_exact, mannwhitneyu
 
-ROOT = Path("/shares/sander.imm.uzh/MM/kansasii"); G = ROOT / "output/gwas"; RES = ROOT / "runs/mkan329/assembly/results"
+ROOT = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii")); G = ROOT / "output/gwas"; RES = ROOT / "runs/mkan329/assembly/results"
 LO, HI = 1944065, 1970050
 lin = pd.read_csv(G / "lineage/kansasii_clades.csv", index_col=0)
 names = list(lin.index)

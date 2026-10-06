@@ -3,13 +3,14 @@ Queries: H880 (Mkan329-101), H211 (Mkan329-005), reference-like (reference seque
 non-overlapping chain of HSPs and the identity over those bases."""
 from __future__ import annotations
 
+import os
 import subprocess
 import pandas as pd
 from pathlib import Path
 from typing import cast
 from Bio import SeqIO
 
-ROOT = Path("/shares/sander.imm.uzh/MM/kansasii"); OUT = ROOT / "output/gwas/blast"; OUT.mkdir(exist_ok=True)
+ROOT = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii")); OUT = ROOT / "output/gwas/blast"; OUT.mkdir(exist_ok=True)
 RES = ROOT / "runs/mkan329/assembly/results"
 PUB = ROOT / "data/gtdb_genomes/Mycobacteriaceae/mlsa-kansasii"
 LO, HI = 1944065, 1970050
@@ -19,7 +20,7 @@ def hap_from_assembly(sample: str) -> str:
     """Extract the region from the isolate's own assembly: BLAST the reference segment, take the contig with most aligned bases and span its hits."""
     fa = RES / sample / f"1_unicycler/{sample}.fasta"
     tmp = OUT / f"tmp_{sample}"; tmp.mkdir(exist_ok=True)
-    (tmp / "q.fa").write_text(f">q\n{refseg}\n")
+    (tmp / "q.fa").write_text(f">q\n{refseg}\n", encoding="utf-8", newline="\n")
     subprocess.run(["makeblastdb", "-in", str(fa), "-dbtype", "nucl", "-out", str(tmp / "db")], check=True, stdout=subprocess.DEVNULL)
     out = subprocess.run(["blastn", "-query", str(tmp / "q.fa"), "-db", str(tmp / "db"), "-evalue", "1e-10", "-outfmt", "6 sseqid sstart send length pident"],
                          check=True, capture_output=True, text=True).stdout
@@ -34,11 +35,11 @@ def hap_from_assembly(sample: str) -> str:
     print(f"  {sample}: contig {best}, extracted {len(seq)} bp (reference segment {len(refseg)} bp), hits {len(d)}, other contigs with hits: {h.c.nunique() - 1}")
     return seq
 q = {"H880_Mkan329-101": hap_from_assembly("Mkan329-101"), "H211_Mkan329-005": hap_from_assembly("Mkan329-005"), "refpattern_ATCC12478": refseg}
-with open(OUT / "queries.fasta", "w") as f:
+with open(OUT / "queries.fasta", "w", encoding="utf-8", newline="\n") as f:
     for k, v in q.items():
         print(k, "length", len(v), "non-ACGT:", sum(c not in "ACGT" for c in v)); f.write(f">{k}\n{v}\n")
 # subject database with species-tagged contig ids
-with open(OUT / "subjects.fasta", "w") as f:
+with open(OUT / "subjects.fasta", "w", encoding="utf-8", newline="\n") as f:
     n = 0
     for sp in sorted(p.name for p in PUB.iterdir()):
         for fa in sorted((PUB / sp).glob("*.fna")):

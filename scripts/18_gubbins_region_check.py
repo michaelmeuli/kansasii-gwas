@@ -2,6 +2,7 @@
 NOTE: iteration 4 (interim) showed a 20-isolate monophyletic clade with one shared block; the FINAL run does not. This script uses final files only."""
 from __future__ import annotations
 
+import os
 from typing import Any
 import re
 import numpy as np
@@ -9,14 +10,14 @@ import pandas as pd
 from pathlib import Path
 from Bio import Phylo
 
-ROOT = Path("/shares/sander.imm.uzh/MM/kansasii"); G = ROOT / "output/gwas"; GB = G / "gubbins"
+ROOT = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii")); G = ROOT / "output/gwas"; GB = G / "gubbins"
 LO, HI = 1944065, 1970050; L = HI - LO + 1
 def grp(pat: str, text: str) -> str:
     m = re.search(pat, text)
     assert m is not None, pat
     return m.group(1)
 rows: list[dict[str, Any]] = []
-for l in open(GB / "kansasii_gubbins.recombination_predictions.gff"):
+for l in open(GB / "kansasii_gubbins.recombination_predictions.gff", encoding="utf-8"):
     if l.startswith("#") or not l.strip(): continue
     f = l.rstrip("\n").split("\t")
     rows.append(dict(start=int(f[3]), end=int(f[4]), taxa=grp(r'taxa="([^"]*)"', f[8]).split(),

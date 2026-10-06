@@ -1,6 +1,7 @@
 """Which reference locus is the true EthA ortholog, and what does Mkan329-054 carry there (read evidence + own assembly)?"""
 from __future__ import annotations
 
+import os
 import pandas as pd
 from pathlib import Path
 from typing import Any
@@ -8,12 +9,12 @@ from Bio import SeqIO, Align
 from Bio.SeqRecord import SeqRecord
 from Bio.Seq import Seq
 
-ROOT = Path("/shares/sander.imm.uzh/MM/kansasii"); OUT = ROOT / "output/gwas"
+ROOT = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii")); OUT = ROOT / "output/gwas"
 RES = ROOT / "runs/mkan329/assembly/results"
 REFDIR = ROOT / "runs/kansasii_complex_gtdb_representatives/assembly/results/GCF_000157895.3_query/2_annotation"
 genome = {r.id: str(r.seq) for r in SeqIO.parse(REFDIR / "GCF_000157895.3_query.fna", "fasta")}["contig_1"]
 G = pd.read_csv(OUT / "candidate_gene_coords.csv"); E = G[(G.gene == "ethA") & (G.chrom == "NC_022663.1")]
-mtb = "".join(l.strip() for l in open(OUT / "ref/Mtb_ethA.faa") if not l.startswith(">"))
+mtb = "".join(l.strip() for l in open(OUT / "ref/Mtb_ethA.faa", encoding="utf-8") if not l.startswith(">"))
 al = Align.PairwiseAligner(); al.mode = "global"; al.substitution_matrix = Align.substitution_matrices.load("BLOSUM62")
 al.open_gap_score, al.extend_gap_score = -10, -0.5
 def ident(a: str, b: str) -> tuple[float, Any]:

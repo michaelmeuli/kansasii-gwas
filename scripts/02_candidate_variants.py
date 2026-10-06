@@ -2,6 +2,7 @@
 using the Bakta annotation of the reference (identical sequence; contig_1==NC_022663.1, contig_2==NC_022654.1)."""
 from __future__ import annotations
 
+import os
 from typing import Any
 import re
 import pandas as pd
@@ -9,7 +10,7 @@ from pathlib import Path
 from Bio import SeqIO
 from Bio.Seq import Seq
 
-ROOT = Path("/shares/sander.imm.uzh/MM/kansasii")
+ROOT = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii"))
 REFDIR = ROOT / "runs/kansasii_complex_gtdb_representatives/assembly/results/GCF_000157895.3_query/2_annotation"
 RES = ROOT / "runs/mkan329/assembly/results"
 OUT = ROOT / "output/gwas"
@@ -20,7 +21,7 @@ CANDIDATES = {"gyrA", "gyrB", "rpoB", "rpsL", "embA", "embB", "embC", "katG", "i
 genome = {CONTIG[r.id]: str(r.seq) for r in SeqIO.parse(REFDIR / "GCF_000157895.3_query.fna", "fasta")}
 
 gene_rows: list[dict[str, Any]] = []
-for line in open(REFDIR / "GCF_000157895.3_query.gff3"):
+for line in open(REFDIR / "GCF_000157895.3_query.gff3", encoding="utf-8"):
     if line.startswith("#"):
         continue
     f = line.rstrip("\n").split("\t")

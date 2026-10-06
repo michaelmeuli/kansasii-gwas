@@ -1,8 +1,9 @@
 """Join MIC phenotypes with species/NGS metadata; flag exclusions. No patient-identifying columns kept."""
+import os
 import pandas as pd
 from pathlib import Path
 
-ROOT = Path("/shares/sander.imm.uzh/MM/kansasii")
+ROOT = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii"))
 OUT = ROOT / "output/gwas"
 EXCLUDE = {35, 113, 106, 10, 21}      # mixed / contaminated cultures
 REVIEW = {8, 28, 46}                  # species calls disagree

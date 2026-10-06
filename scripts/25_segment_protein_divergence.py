@@ -2,6 +2,7 @@
 for all 59 genes of the segment, plus a check of the SAM-binding (GxGxG) motif region in each allele."""
 from __future__ import annotations
 
+import os
 from typing import Any
 import re
 import numpy as np
@@ -9,7 +10,7 @@ import pandas as pd
 from pathlib import Path
 from Bio import SeqIO, Align
 
-ROOT = Path("/shares/sander.imm.uzh/MM/kansasii"); G = ROOT / "output/gwas"; RES = ROOT / "runs/mkan329/assembly/results"
+ROOT = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii")); G = ROOT / "output/gwas"; RES = ROOT / "runs/mkan329/assembly/results"
 REFFAA = ROOT / "runs/kansasii_complex_gtdb_representatives/assembly/results/GCF_000157895.3_query/2_annotation/GCF_000157895.3_query.faa"
 ref = {r.id: str(r.seq) for r in SeqIO.parse(REFFAA, "fasta")}
 genes = pd.read_csv(G / "boundaries/segment_genes.csv")

@@ -2,6 +2,7 @@
 alignment, verify the expected wild-type residue at each hotspot, then tabulate each isolate's state and MIC."""
 from __future__ import annotations
 
+import os
 from typing import Any
 import re
 import pandas as pd
@@ -9,7 +10,7 @@ from pathlib import Path
 from Bio import SeqIO, Align
 from Bio.Seq import Seq
 
-ROOT = Path("/shares/sander.imm.uzh/MM/kansasii")
+ROOT = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii"))
 OUT = ROOT / "output/gwas"
 REF = OUT / "ref"
 REFFNA = ROOT / "runs/kansasii_complex_gtdb_representatives/assembly/results/GCF_000157895.3_query/2_annotation/GCF_000157895.3_query.fna"
@@ -54,7 +55,7 @@ sp = pd.read_csv(ROOT / "data/imm/screening_map_results.csv", usecols=["PROBENNU
 check: list[dict[str, Any]] = []
 rows: list[dict[str, Any]] = []
 for gene, hs in HOT.items():
-    mtb = "".join(l.strip() for l in open(REF / f"Mtb_{gene}.faa") if not l.startswith(">"))
+    mtb = "".join(l.strip() for l in open(REF / f"Mtb_{gene}.faa", encoding="utf-8") if not l.startswith(">"))
     kan, r = kan_prot(gene)
     m = pos_map(mtb, kan)  # Mtb -> kansasii
     ident = sum(mtb[a - 1] == kan[b - 1] for a, b in m.items()) / len(m)

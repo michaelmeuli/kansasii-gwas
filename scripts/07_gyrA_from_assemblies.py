@@ -1,14 +1,15 @@
 """gyrA QRDR residues (Mtb numbering) read from each isolate's own Bakta protein annotation (no reference mapping)."""
 from __future__ import annotations
 
+import os
 from typing import Any
 import pandas as pd
 from pathlib import Path
 from Bio import SeqIO, Align
 
-ROOT = Path("/shares/sander.imm.uzh/MM/kansasii"); OUT = ROOT / "output/gwas"
+ROOT = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii")); OUT = ROOT / "output/gwas"
 RES = ROOT / "runs/mkan329/assembly/results"
-mtb = "".join(l.strip() for l in open(OUT / "ref/Mtb_gyrA.faa") if not l.startswith(">"))
+mtb = "".join(l.strip() for l in open(OUT / "ref/Mtb_gyrA.faa", encoding="utf-8") if not l.startswith(">"))
 al = Align.PairwiseAligner(); al.mode = "global"; al.substitution_matrix = Align.substitution_matrices.load("BLOSUM62")
 al.open_gap_score, al.extend_gap_score = -10, -0.5
 sites = [74, 88, 89, 90, 91, 94]   # QRDR residues, Mtb numbering (wt A90, D94 verified earlier)

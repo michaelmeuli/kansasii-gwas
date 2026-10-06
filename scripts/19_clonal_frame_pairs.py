@@ -2,6 +2,7 @@
 recombination-filtered tree and ask whether pairs that differ in region haplotype also differ in phenotype."""
 from __future__ import annotations
 
+import os
 from typing import Any
 import numpy as np
 import pandas as pd
@@ -9,7 +10,7 @@ from pathlib import Path
 from Bio import Phylo
 from scipy.stats import binomtest
 
-ROOT = Path("/shares/sander.imm.uzh/MM/kansasii"); G = ROOT / "output/gwas"
+ROOT = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii")); G = ROOT / "output/gwas"
 T = Phylo.read(G / "gubbins/kansasii_gubbins.final_tree.tre", "newick")  # type: ignore[attr-defined,no-untyped-call]
 h = pd.read_csv(G / "lineage/kansasii_region_haplotype.csv", index_col=0)
 mg = pd.read_csv(ROOT / "output/mic/mgit/mgit_parsed.csv")

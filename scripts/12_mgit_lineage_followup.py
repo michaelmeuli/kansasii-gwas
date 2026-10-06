@@ -3,6 +3,7 @@ reference signal. Characterise it (block membership, ANI, variant-set distances)
 independent MIC cohort (no isolate overlap for kansasii)."""
 from __future__ import annotations
 
+import os
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -10,7 +11,7 @@ from scipy.stats import mannwhitneyu, spearmanr
 from scipy.cluster.hierarchy import linkage, fcluster
 from scipy.spatial.distance import squareform
 
-ROOT = Path("/shares/sander.imm.uzh/MM/kansasii"); OUT = ROOT / "output/gwas/mgit"; RES = ROOT / "runs/mkan329/assembly/results"
+ROOT = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii")); OUT = ROOT / "output/gwas/mgit"; RES = ROOT / "runs/mkan329/assembly/results"
 KEY = "FCNCLM_04057||prom"
 M = pd.read_csv(OUT / "gene_matrix.csv", index_col=0)
 s = pd.read_csv(ROOT / "data/imm/screening_map_results.csv", usecols=["NR", "PROBENNUMMER", "species", "gtdb_ani", "gtdb_reference"]).set_index("NR")

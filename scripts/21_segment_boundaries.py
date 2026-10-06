@@ -5,6 +5,7 @@ above identity to the reference; kansasii-like when reference identity >= 98.5% 
 expressed in reference coordinates through the window's best reference hit. Controls: isolates with the reference-like and ~211-variant haplotypes."""
 from __future__ import annotations
 
+import os
 from collections.abc import Sequence
 from typing import Any
 import subprocess
@@ -14,12 +15,12 @@ from pathlib import Path
 from Bio import SeqIO
 from Bio.Seq import Seq
 
-ROOT = Path("/shares/sander.imm.uzh/MM/kansasii"); OUT = ROOT / "output/gwas/boundaries"; OUT.mkdir(exist_ok=True)
+ROOT = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii")); OUT = ROOT / "output/gwas/boundaries"; OUT.mkdir(exist_ok=True)
 RES = ROOT / "runs/mkan329/assembly/results"; PUB = ROOT / "data/gtdb_genomes/Mycobacteriaceae/mlsa-kansasii"
 SCAN_LO, SCAN_HI = 1_800_000, 2_100_000; W, STEP = 1000, 500
 ref = str(next(SeqIO.parse(RES / "Mkan329-001/5_typing/kansasii_snippy/snippy_out/ref.fa", "fasta")).seq).upper()
-(OUT / "ref.fa").write_text(">NC_022663.1\n" + ref + "\n")
-with open(OUT / "persicum.fa", "w") as f:
+(OUT / "ref.fa").write_text(">NC_022663.1\n" + ref + "\n", encoding="utf-8", newline="\n")
+with open(OUT / "persicum.fa", "w", encoding="utf-8", newline="\n") as f:
     for fa in sorted((PUB / "persicum").glob("*.fna")):
         for r in SeqIO.parse(fa, "fasta"): f.write(f">{fa.stem}|{r.id}\n{str(r.seq)}\n")
 for fname, db in (("ref.fa", "refdb"), ("persicum.fa", "persdb")):
@@ -37,7 +38,7 @@ def blast(q: Path, db: str, fields: str, extra: Sequence[str] = ()) -> list[list
 
 def windows_for(sample: str) -> tuple[str, str, int, tuple[int, int, bool]]:
     fa = RES / sample / f"1_unicycler/{sample}.fasta"; tmp = OUT / f"tmp_{sample}"; tmp.mkdir(exist_ok=True)
-    (tmp / "q.fa").write_text(">scan\n" + ref[SCAN_LO - 1:SCAN_HI] + "\n")
+    (tmp / "q.fa").write_text(">scan\n" + ref[SCAN_LO - 1:SCAN_HI] + "\n", encoding="utf-8", newline="\n")
     subprocess.run(["makeblastdb", "-in", str(fa), "-dbtype", "nucl", "-out", str(tmp / "db")], check=True, stdout=subprocess.DEVNULL)
     h = pd.DataFrame(blast_local(tmp / "q.fa", tmp / "db"), columns=["c", "qs", "qe", "ss", "se", "len"]).astype({"qs": int, "qe": int, "ss": int, "se": int, "len": int})
     best = str(h.groupby("c").len.sum().idxmax()); d = h[h.c == best]
@@ -56,7 +57,7 @@ rows: list[dict[str, Any]] = []
 for s in H880 + CTRL:
     seg, contig, clen, span = windows_for(s)
     qf = OUT / f"win_{s}.fa"
-    with open(qf, "w") as f:
+    with open(qf, "w", encoding="utf-8", newline="\n") as f:
         starts = list(range(0, max(1, len(seg) - W + 1), STEP))
         for i in starts: f.write(f">w{i}\n{seg[i:i + W]}\n")
     def best(db: str, with_ref: bool) -> dict[str, tuple[float, float, int, int, int]]:

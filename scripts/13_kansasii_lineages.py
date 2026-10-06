@@ -3,6 +3,7 @@ Uses snippy snps.aligned.fa (full-length alignment to NC_022663.1). Core = sites
 Distances are Hamming counts over variable core sites (no recombination filtering; an approximation, not an ML tree)."""
 from __future__ import annotations
 
+import os
 import numpy.typing as npt
 import numpy as np
 import pandas as pd
@@ -12,7 +13,7 @@ from Bio.Phylo.TreeConstruction import DistanceMatrix, DistanceTreeConstructor
 from scipy.cluster.hierarchy import linkage, fcluster
 from scipy.spatial.distance import squareform
 
-ROOT = Path("/shares/sander.imm.uzh/MM/kansasii"); OUT = ROOT / "output/gwas/lineage"; RES = ROOT / "runs/mkan329/assembly/results"
+ROOT = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii")); OUT = ROOT / "output/gwas/lineage"; RES = ROOT / "runs/mkan329/assembly/results"
 EXCL = {35, 113, 106, 10, 21}
 m = pd.read_csv(ROOT / "data/imm/screening_map_results.csv", usecols=["NR", "PROBENNUMMER", "species"])
 m = m[(m.species == "kansasii") & ~m.NR.isin(EXCL)].sort_values("NR")
@@ -20,7 +21,7 @@ names = m.PROBENNUMMER.tolist(); print("kansasii genomes:", len(names), flush=Tr
 
 def read_chr(path: Path) -> npt.NDArray[np.uint8]:
     seq: list[str] = []; on = False
-    for l in open(path):
+    for l in open(path, encoding="utf-8"):
         if l.startswith(">"):
             if on: break
             on = l[1:].split()[0] == "NC_022663.1"
@@ -37,7 +38,7 @@ var = (C != C[0]).any(axis=0)
 V = C[:, var]; print("variable core sites:", V.shape[1], flush=True)
 pos = np.flatnonzero(core)[var] + 1
 pd.DataFrame({"pos": pos}).to_csv(OUT / "core_snp_positions.csv", index=False)
-with open(OUT / "kansasii_core_snps.fasta", "w") as f:
+with open(OUT / "kansasii_core_snps.fasta", "w", encoding="utf-8", newline="\n") as f:
     for n, row in zip(names, V): f.write(f">{n}\n{row.tobytes().decode()}\n")
 D = np.array([(V != V[i]).sum(axis=1) for i in range(len(names))])
 pd.DataFrame(D, index=names, columns=names).to_csv(OUT / "core_snp_distance_matrix.csv")

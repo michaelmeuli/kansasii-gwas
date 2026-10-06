@@ -5,6 +5,7 @@ The filtered tree is shallow and star-like, so instead of two big clades we use 
 is normal, no private Gubbins blocks)."""
 from __future__ import annotations
 
+import os
 from typing import Any
 import numpy.typing as npt
 import numpy as np
@@ -15,7 +16,7 @@ from scipy.spatial.distance import squareform
 from scipy.stats import fisher_exact, spearmanr
 from statsmodels.stats.contingency_tables import StratifiedTable
 
-ROOT = Path("/shares/sander.imm.uzh/MM/kansasii"); G = ROOT / "output/gwas"; OUT = G / "gubbins"
+ROOT = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii")); G = ROOT / "output/gwas"; OUT = G / "gubbins"
 rng = np.random.default_rng(7)
 D = pd.read_csv(OUT / "filtered_tree_distance_matrix.csv", index_col=0).drop(index="Mkan329-068", columns="Mkan329-068")
 names = D.index.tolist(); print("isolates in tree analyses:", len(names), "(Mkan329-068 excluded)")

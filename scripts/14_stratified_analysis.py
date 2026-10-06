@@ -3,6 +3,7 @@ distances (script 13); the remaining 2 isolates are single long-branch genomes. 
 (2) gene-level Fisher tests within clade B only; (3) the same within-clade question for ANI; (4) MIC cohort: clade vs MIC, all drugs."""
 from __future__ import annotations
 
+import os
 from typing import Any
 import numpy as np
 import pandas as pd
@@ -10,7 +11,7 @@ from pathlib import Path
 from scipy.cluster.hierarchy import fcluster
 from scipy.stats import fisher_exact, mannwhitneyu
 
-ROOT = Path("/shares/sander.imm.uzh/MM/kansasii"); G = ROOT / "output/gwas"; O = G / "lineage"
+ROOT = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii")); G = ROOT / "output/gwas"; O = G / "lineage"
 D = pd.read_csv(O / "core_snp_distance_matrix.csv", index_col=0); names = D.index.tolist()
 cl4 = pd.Series(fcluster(np.load(O / "linkage.npy"), 4, "maxclust"), index=names)
 size = cl4.value_counts()

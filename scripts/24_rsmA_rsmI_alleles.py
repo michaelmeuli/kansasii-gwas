@@ -3,6 +3,7 @@
 Conservation is judged against the M. tuberculosis orthologs (KsgA/Rv1010, RsmI/Rv2372c): a position is 'conserved' when kansasii reference and Mtb agree."""
 from __future__ import annotations
 
+import os
 from typing import Any
 import subprocess
 import pandas as pd
@@ -11,7 +12,7 @@ from pathlib import Path
 from Bio import SeqIO, Align
 from Bio.Align import substitution_matrices
 
-ROOT = Path("/shares/sander.imm.uzh/MM/kansasii"); G = ROOT / "output/gwas"; OUT = G / "boundaries"; RES = ROOT / "runs/mkan329/assembly/results"
+ROOT = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii")); G = ROOT / "output/gwas"; OUT = G / "boundaries"; RES = ROOT / "runs/mkan329/assembly/results"
 REFFAA = ROOT / "runs/kansasii_complex_gtdb_representatives/assembly/results/GCF_000157895.3_query/2_annotation/GCF_000157895.3_query.faa"
 PUB = ROOT / "data/gtdb_genomes/Mycobacteriaceae/mlsa-kansasii"
 ref = {r.id: str(r.seq) for r in SeqIO.parse(REFFAA, "fasta")}
@@ -37,7 +38,7 @@ for s in seg.index:
     rows.append(row)
 A = pd.DataFrame(rows).set_index("sample")
 for name, (lt, mg) in GENES.items():
-    mtb = "".join(l.strip() for l in open(G / f"ref/Mtb_{mg}.faa") if not l.startswith(">"))
+    mtb = "".join(l.strip() for l in open(G / f"ref/Mtb_{mg}.faa", encoding="utf-8") if not l.startswith(">"))
     mtbmap: dict[int, str] = {}
     aln = al.align(ref[lt], mtb)[0]
     for (a0, a1), (b0, b1) in zip(*aln.aligned):
@@ -68,13 +69,13 @@ for name, (lt, mg) in GENES.items():
         for sp in ("persicum", "kansasii"):
             fa = OUT / f"pub_{sp}.fa"
             if not fa.exists():
-                with open(fa, "w") as f:
+                with open(fa, "w", encoding="utf-8", newline="\n") as f:
                     for gf in sorted((PUB / sp).glob("*.fna")):
                         for r in SeqIO.parse(gf, "fasta"): f.write(f">{gf.stem}|{r.id}\n{str(r.seq)}\n")
                 subprocess.run(["makeblastdb", "-in", str(fa), "-dbtype", "nucl", "-out", str(OUT / f"pub_{sp}")], check=True, stdout=subprocess.DEVNULL)
             res: dict[str, dict[str, tuple[float, float, int]]] = {}
             for tag, q in (("ref", ref[lt]), ("alleleP1", main)):
-                (OUT / "q.faa").write_text(f">q\n{q}\n")
+                (OUT / "q.faa").write_text(f">q\n{q}\n", encoding="utf-8", newline="\n")
                 out = subprocess.run(["tblastn", "-query", str(OUT / "q.faa"), "-db", str(OUT / f"pub_{sp}"), "-outfmt", "6 sseqid pident length bitscore", "-evalue", "1e-30", "-max_target_seqs", "200"],
                                      check=True, capture_output=True, text=True).stdout.strip().split("\n")
                 best: dict[str, tuple[float, float, int]] = {}

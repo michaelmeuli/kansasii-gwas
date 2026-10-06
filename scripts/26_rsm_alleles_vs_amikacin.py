@@ -1,10 +1,11 @@
 """Gene-specific version of the amikacin hypothesis: persicum-like RsmA or RsmI allele (vs kansasii reference-like) against amikacin, MGIT and MIC cohorts.
 Alleles from script 24 (any non-reference allele counts as persicum-like; all non-reference alleles derive from the persicum-like haplotype)."""
+import os
 import pandas as pd
 from pathlib import Path
 from scipy.stats import fisher_exact, mannwhitneyu
 
-ROOT = Path("/shares/sander.imm.uzh/MM/kansasii"); G = ROOT / "output/gwas"; B = G / "boundaries"
+ROOT = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii")); G = ROOT / "output/gwas"; B = G / "boundaries"
 seg = pd.read_csv(B / "segment_classes_v2.csv", index_col=0)
 for g in ("RsmA", "RsmI"): seg[g] = pd.read_csv(B / f"{g}_allele_per_isolate.csv", index_col=0).iloc[:, 0].ne("REF-like")
 mg = pd.read_csv(ROOT / "output/mic/mgit/mgit_parsed.csv")

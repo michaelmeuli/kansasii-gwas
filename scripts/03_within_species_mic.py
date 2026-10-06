@@ -4,6 +4,7 @@ rRNA nucleotide changes, and per-gene frameshift/indel flags. Carrier = differs 
 polarity is irrelevant here because only sites segregating inside a species are tested."""
 from __future__ import annotations
 
+import os
 from typing import Any
 import numpy.typing as npt
 import numpy as np
@@ -13,7 +14,7 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 from scipy.stats import mannwhitneyu
 
-ROOT = Path("/shares/sander.imm.uzh/MM/kansasii")
+ROOT = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii"))
 OUT = ROOT / "output/gwas"
 RES = ROOT / "runs/mkan329/assembly/results"
 REFFNA = ROOT / "runs/kansasii_complex_gtdb_representatives/assembly/results/GCF_000157895.3_query/2_annotation/GCF_000157895.3_query.fna"

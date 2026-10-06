@@ -1,14 +1,15 @@
 """rRNA hotspot check in E. coli numbering: rrl A2058/A2059 (macrolides), rrs A1408 (aminoglycosides)."""
 from __future__ import annotations
 
+import os
 from typing import Any
 import pandas as pd
 from pathlib import Path
 from Bio import SeqIO, Align
 from Bio.Seq import Seq
 
-ROOT = Path("/shares/sander.imm.uzh/MM/kansasii"); OUT = ROOT / "output/gwas"
-ec = "".join(l.strip() for l in open(OUT / "ref/Ecoli_rrnA_region.fa") if not l.startswith(">"))
+ROOT = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii")); OUT = ROOT / "output/gwas"
+ec = "".join(l.strip() for l in open(OUT / "ref/Ecoli_rrnA_region.fa", encoding="utf-8") if not l.startswith(">"))
 s16 = ec.find("AAATTGAAGAGTTTGATCATGGCTCAG"); s23 = ec.find("GGTTAAGCGACTAAGCGTACACGGTGGATGCC")
 ec16, ec23 = ec[s16:s16 + 1542], ec[s23 + 1:s23 + 1 + 2904]  # +1: motif hit sits one base 5-prime of the numbered 23S start (verified by 2057-2063 == GAAAGAC)
 assert ec23[2056:2063] == "GAAAGAC", ec23[2056:2063]

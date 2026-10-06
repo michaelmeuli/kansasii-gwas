@@ -1,17 +1,18 @@
 """Base state and coverage at hotspot codons straight from snippy snps.aligned.fa ('-' = no coverage, 'N' = low coverage)."""
 from __future__ import annotations
 
+import os
 import json
 import pandas as pd
 from pathlib import Path
 from collections import Counter
 
-ROOT = Path("/shares/sander.imm.uzh/MM/kansasii"); OUT = ROOT / "output/gwas"
+ROOT = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii")); OUT = ROOT / "output/gwas"
 RES = ROOT / "runs/mkan329/assembly/results"
-sites = json.load(open(OUT / "hotspot_sites.json"))
+sites = json.load(open(OUT / "hotspot_sites.json", encoding="utf-8"))
 ref: dict[str, list[str]] = {}
 cur = ""
-for l in open(RES / "Mkan329-001/5_typing/kansasii_snippy/snippy_out/ref.fa"):
+for l in open(RES / "Mkan329-001/5_typing/kansasii_snippy/snippy_out/ref.fa", encoding="utf-8"):
     if l.startswith(">"):
         cur = l[1:].split()[0]; ref[cur] = []
     else:
@@ -25,7 +26,7 @@ for d in sorted(RES.glob("Mkan329-*")):
     if not f.exists():
         continue
     seq, on = [], False
-    for l in open(f):
+    for l in open(f, encoding="utf-8"):
         if l.startswith(">"):
             if on: break
             on = l[1:].split()[0] == "NC_022663.1"

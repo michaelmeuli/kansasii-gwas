@@ -254,3 +254,21 @@ a recombination hotspot and is carried by several backgrounds. The tree-aware ch
 5. Calibrate MGIT 1 mg/L against MIC: almost all MIC-cohort isolates have amikacin MIC of 2 mg/L or more, yet 5 MGIT isolates are
    S/I at 1 mg/L, so the two methods may not be on a comparable scale.
 6. Persicum needs more MIC-tested isolates; per-species analysis is currently impossible there.
+
+## Windows checkout
+
+- `.gitattributes` forces LF line endings, so a Windows checkout (even with
+  `core.autocrlf=true`) keeps scripts runnable. Recommended: `git config core.autocrlf false`
+  and `git config core.longpaths true`.
+- Scripts default to the cluster root `/shares/sander.imm.uzh/MM/kansasii`; set the
+  `KANSASII_ROOT` environment variable to point elsewhere (e.g. a mapped drive).
+- Nextflow, Singularity and sbatch steps only run on the cluster (or WSL).
+
+## Windows checkout
+
+- `.gitattributes` forces LF line endings, so a Windows checkout (even with
+  `core.autocrlf=true`) keeps scripts runnable. Recommended: `git config core.autocrlf false`
+  and `git config core.longpaths true`.
+- Scripts default to the cluster root `/shares/sander.imm.uzh/MM/kansasii`; set the
+  `KANSASII_ROOT` environment variable to point elsewhere (e.g. a mapped drive).
+- Nextflow, Singularity and sbatch steps only run on the cluster (or WSL).

@@ -2,6 +2,7 @@
 (A>C) against ethionamide MIC across all isolates with MIC and NGS."""
 from __future__ import annotations
 
+import os
 from typing import Any
 import pandas as pd
 from pathlib import Path
@@ -9,7 +10,7 @@ from Bio import SeqIO, Align
 from Bio.Seq import Seq
 from scipy.stats import fisher_exact, mannwhitneyu
 
-ROOT = Path("/shares/sander.imm.uzh/MM/kansasii"); OUT = ROOT / "output/gwas"; RES = ROOT / "runs/mkan329/assembly/results"
+ROOT = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii")); OUT = ROOT / "output/gwas"; RES = ROOT / "runs/mkan329/assembly/results"
 REFDIR = ROOT / "runs/kansasii_complex_gtdb_representatives/assembly/results/GCF_000157895.3_query/2_annotation"
 genome = {r.id: str(r.seq) for r in SeqIO.parse(REFDIR / "GCF_000157895.3_query.fna", "fasta")}["contig_1"]
 meta = pd.read_csv(ROOT / "data/imm/screening_map_results.csv", usecols=["PROBENNUMMER", "species", "NR"]).set_index("PROBENNUMMER")

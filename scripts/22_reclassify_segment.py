@@ -3,6 +3,7 @@ Diagnostic sites = positions in the segment where all contig-complete carriers s
 Left part 1,929,793-1,950,330 (persicum-like also in the ~211 haplotype), right part 1,950,331-1,994,501 (only in the full haplotype)."""
 from __future__ import annotations
 
+import os
 from typing import Any
 import numpy.typing as npt
 import numpy as np
@@ -10,12 +11,12 @@ import pandas as pd
 from pathlib import Path
 from scipy.stats import fisher_exact
 
-ROOT = Path("/shares/sander.imm.uzh/MM/kansasii"); G = ROOT / "output/gwas"; OUT = G / "boundaries"; RES = ROOT / "runs/mkan329/assembly/results"
+ROOT = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii")); G = ROOT / "output/gwas"; OUT = G / "boundaries"; RES = ROOT / "runs/mkan329/assembly/results"
 LO, HI, MID = 1_929_793, 1_994_501, 1_950_330
 CARR = ["Mkan329-001", "Mkan329-116", "Mkan329-003", "Mkan329-013", "Mkan329-020", "Mkan329-066", "Mkan329-101"]; CTRL = ["Mkan329-011", "Mkan329-014"]
 def read_chr(s: str) -> npt.NDArray[np.uint8]:
     seq: list[str] = []; on = False
-    for l in open(RES / s / "5_typing/kansasii_snippy/snippy_out/snps.aligned.fa"):
+    for l in open(RES / s / "5_typing/kansasii_snippy/snippy_out/snps.aligned.fa", encoding="utf-8"):
         if l.startswith(">"):
             if on: break
             on = l[1:].split()[0] == "NC_022663.1"
@@ -56,7 +57,7 @@ print("\nnew classification vs the old region-based haplotype class:\n", pd.cros
 print("\nambiguous isolates:\n", d[d.segment_class == "ambiguous"][["frac_persicum_left", "called_left", "frac_persicum_right", "called_right", "hap"]].round(2).to_string())
 # genes inside the segment
 grows: list[tuple[str | None, int, int, str, str]] = []
-for l in open(ROOT / "runs/kansasii_complex_gtdb_representatives/assembly/results/GCF_000157895.3_query/2_annotation/GCF_000157895.3_query.gff3"):
+for l in open(ROOT / "runs/kansasii_complex_gtdb_representatives/assembly/results/GCF_000157895.3_query/2_annotation/GCF_000157895.3_query.gff3", encoding="utf-8"):
     if l.startswith("#"): continue
     f = l.rstrip("\n").split("\t")
     if len(f) < 9 or f[0] != "contig_1" or f[2] != "CDS": continue

@@ -3,6 +3,7 @@ any rRNA/ncRNA variant, or any variant in the 150 bp upstream region. Fisher exa
 carrier patterns; block size = number of genes sharing a pattern (large block = lineage marker, not a gene-specific effect)."""
 from __future__ import annotations
 
+import os
 import re
 from collections.abc import Iterator
 from typing import Any, cast
@@ -16,7 +17,7 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 from scipy.stats import fisher_exact
 
-ROOT = Path("/shares/sander.imm.uzh/MM/kansasii"); OUT = ROOT / "output/gwas/mgit"; OUT.mkdir(exist_ok=True)
+ROOT = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii")); OUT = ROOT / "output/gwas/mgit"; OUT.mkdir(exist_ok=True)
 RES = ROOT / "runs/mkan329/assembly/results"
 REFDIR = ROOT / "runs/kansasii_complex_gtdb_representatives/assembly/results/GCF_000157895.3_query/2_annotation"
 CONTIG = {"contig_1": "NC_022663.1", "contig_2": "NC_022654.1"}
@@ -27,7 +28,7 @@ genome = {CONTIG[r.id]: str(r.seq) for r in SeqIO.parse(REFDIR / "GCF_000157895.
 
 # ---- annotation
 gene_rows: list[dict[str, Any]] = []
-for l in open(REFDIR / "GCF_000157895.3_query.gff3"):
+for l in open(REFDIR / "GCF_000157895.3_query.gff3", encoding="utf-8"):
     if l.startswith("#"): continue
     f = l.rstrip("\n").split("\t")
     if len(f) < 9 or f[2] not in ("CDS", "rRNA", "tRNA", "ncRNA"): continue

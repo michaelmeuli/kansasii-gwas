@@ -3,6 +3,7 @@ tier, by at most one other). Annotated against the Bakta annotation of the refer
 base and merged per codon. Background = all same-species genomes (not only the ones with MIC), minus contaminated cultures."""
 from __future__ import annotations
 
+import os
 from typing import Any
 import re
 import pandas as pd
@@ -11,7 +12,7 @@ from collections import defaultdict
 from Bio import SeqIO
 from Bio.Seq import Seq
 
-ROOT = Path("/shares/sander.imm.uzh/MM/kansasii"); OUT = ROOT / "output/gwas"
+ROOT = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii")); OUT = ROOT / "output/gwas"
 RES = ROOT / "runs/mkan329/assembly/results"
 REFDIR = ROOT / "runs/kansasii_complex_gtdb_representatives/assembly/results/GCF_000157895.3_query/2_annotation"
 CONTIG = {"contig_1": "NC_022663.1", "contig_2": "NC_022654.1"}
@@ -21,7 +22,7 @@ FOCAL = {"Mkan329-054": "persicum", "Mkan329-055": "persicum", "Mkan329-047": "k
 genome = {CONTIG[r.id]: str(r.seq) for r in SeqIO.parse(REFDIR / "GCF_000157895.3_query.fna", "fasta")}
 
 feats: list[tuple[str, int, int, str, str, str, str, str]] = []
-for l in open(REFDIR / "GCF_000157895.3_query.gff3"):
+for l in open(REFDIR / "GCF_000157895.3_query.gff3", encoding="utf-8"):
     if l.startswith("#"): continue
     f = l.rstrip("\n").split("\t")
     if len(f) < 9 or f[2] not in ("CDS", "rRNA", "tRNA", "ncRNA"): continue

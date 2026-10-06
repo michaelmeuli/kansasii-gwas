@@ -1,6 +1,7 @@
 """Segment classes (script 22, persicum-like threshold relaxed to >= 0.75; none <= 0.10) vs amikacin: MGIT 1 mg/L, MIC cohort, and tree-aware checks."""
 from __future__ import annotations
 
+import os
 from typing import Any
 import numpy as np
 import pandas as pd
@@ -9,7 +10,7 @@ from scipy.cluster.hierarchy import linkage, fcluster
 from scipy.spatial.distance import squareform
 from scipy.stats import fisher_exact, mannwhitneyu, binomtest
 
-ROOT = Path("/shares/sander.imm.uzh/MM/kansasii"); G = ROOT / "output/gwas"
+ROOT = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii")); G = ROOT / "output/gwas"
 d = pd.read_csv(G / "boundaries/segment_classes.csv", index_col=0)
 def cls(r: Any) -> str:
     L, R = r.frac_persicum_left, r.frac_persicum_right

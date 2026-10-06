@@ -2,19 +2,20 @@
 ('-' = no coverage, 'N' = low coverage; Gubbins treats both as missing). Writes output/gwas/gubbins/kansasii_chr_aln.fasta."""
 from __future__ import annotations
 
+import os
 import numpy as np
 import pandas as pd
 from pathlib import Path
 from Bio import SeqIO
 
-ROOT = Path("/shares/sander.imm.uzh/MM/kansasii"); OUT = ROOT / "output/gwas/gubbins"; RES = ROOT / "runs/mkan329/assembly/results"
+ROOT = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii")); OUT = ROOT / "output/gwas/gubbins"; RES = ROOT / "runs/mkan329/assembly/results"
 EXCL = {35, 113, 106, 10, 21}
 m = pd.read_csv(ROOT / "data/imm/screening_map_results.csv", usecols=["NR", "PROBENNUMMER", "species"])
 m = m[(m.species == "kansasii") & ~m.NR.isin(EXCL)].sort_values("NR")
 
 def read_chr(path: Path) -> str:
     seq: list[str] = []; on = False
-    for l in open(path):
+    for l in open(path, encoding="utf-8"):
         if l.startswith(">"):
             if on: break
             on = l[1:].split()[0] == "NC_022663.1"
@@ -23,7 +24,7 @@ def read_chr(path: Path) -> str:
 
 ref = str(next(SeqIO.parse(RES / "Mkan329-001/5_typing/kansasii_snippy/snippy_out/ref.fa", "fasta")).seq).upper()
 rows: list[tuple[str, float]] = []
-with open(OUT / "kansasii_chr_aln.fasta", "w") as f:
+with open(OUT / "kansasii_chr_aln.fasta", "w", encoding="utf-8", newline="\n") as f:
     f.write(f">Reference_ATCC12478\n{ref}\n")
     for n in m.PROBENNUMMER:
         s = read_chr(RES / n / "5_typing/kansasii_snippy/snippy_out/snps.aligned.fa")
