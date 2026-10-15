@@ -24,7 +24,6 @@ def read_chr(s: str) -> npt.NDArray[np.uint8]:
     return np.frombuffer("".join(seq).encode(), dtype=np.uint8)[LO - 1:HI]
 lin = pd.read_csv(G / "lineage/kansasii_region_haplotype.csv", index_col=0)
 A = {s: read_chr(s) for s in lin.index}
-ref = np.frombuffer(next(l for l in open(RES / "Mkan329-001/5_typing/kansasii_snippy/snippy_out/ref.fa") if False) if False else b"", dtype=np.uint8) if False else None
 from Bio import SeqIO
 refseq = np.frombuffer(str(next(SeqIO.parse(RES / "Mkan329-001/5_typing/kansasii_snippy/snippy_out/ref.fa", "fasta")).seq).upper().encode(), dtype=np.uint8)[LO - 1:HI]
 acgt = np.frombuffer(b"ACGT", dtype=np.uint8)

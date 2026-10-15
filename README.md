@@ -5,7 +5,20 @@ Status as of 2026-10-05. Exploratory analysis; nothing here is a validated resis
 **Outdated inputs:** the numbers and results below are from the 2026-10-05/06 run (44 MIC isolates, 131 genomes).
 Since then the cohort grew to 186 genomes (jc batch NR 134-186) and 79 MHK-panel isolates
 (`output/mic/mhk`, jc MIC table added 2026-10-15). The analysis has not been rerun on it yet.
-Run scripts in `env_mlsa` (`module load miniforge3; source activate env_mlsa`). Outputs go to `output/gwas/`.
+Outputs go to `output/gwas/`.
+
+## Run
+
+```bash
+sbatch run_all.sbatch            # scripts/00 .. 26 in numeric order, Gubbins after 16 (about 2-3 h)
+FROM=13 sbatch run_all.sbatch    # restart at script 13 (earlier outputs must exist)
+```
+
+The numeric order is a valid dependency order. `run_all.sbatch` uses `env_mlsa` (python, biopython,
+statsmodels) and takes `blastn`/`makeblastdb`/`tblastn` (scripts 17, 21, 24) from `env_arm`. It needs
+`data/imm/screening_map_results.csv` and `output/mic/{mhk,mgit}/` (rerun those first, see
+`immensekansasii/WORKFLOW.md`, "Run order"). Script 00 downloads the numbering references to
+`output/gwas/ref/`; the scripts are otherwise unchanged by it.
 
 ## Cohort that can be analysed
 - 44 isolates have broth-microdilution MIC (`output/mic/mhk/mic_parsed.csv`, 13 drugs); 30 also have a genome and are not excluded
@@ -17,6 +30,7 @@ Run scripts in `env_mlsa` (`module load miniforge3; source activate env_mlsa`). 
 ## Scripts (`scripts/`)
 | Script | Purpose | Main output |
 |---|---|---|
+| `00_fetch_references.sh` | UniProt H37Rv proteins and E. coli rrnA region used for numbering | `ref/*.faa`, `ref/Ecoli_rrnA_region.fa` |
 | `01_build_table.py` | join MIC with species and QC flags, apply exclusions | `geno_pheno_table_long.csv` |
 | `02_candidate_variants.py` | find candidate resistance loci in the Bakta reference annotation; list variants per isolate | `candidate_gene_coords.csv`, `candidate_variants_per_isolate.csv` |
 | `03_within_species_mic.py` | carrier vs non-carrier MIC tests per species (Mann-Whitney) | `within_species_mic_tests.csv`, `candidate_features_per_sample.csv` |
@@ -26,11 +40,11 @@ Run scripts in `env_mlsa` (`module load miniforge3; source activate env_mlsa`). 
 | `07_gyrA_from_assemblies.py` | gyrA QRDR residues read from each genome's own annotation | `gyrA_QRDR_from_assemblies.csv` |
 | `08_outlier_private_variants.py` | variants carried by an MIC-outlier isolate and by no other genome of the species | `outlier_private_variants.csv` |
 | `09_ethA_054.py`, `10_ethA_promoter_and_paralog.py` | follow-up on Mkan329-054's ethA calls | `ethionamide_ethA_upstream_3145420.csv` |
-| `11_mgit_whole_gene.py` (+ `submit_mgit_whole_gene.sbatch`) | MGIT whole-gene association (gene-level binary calls, Fisher within species) | `mgit/gene_matrix.csv`, `mgit/mgit_gene_tests.csv`, `mgit/mgit_tests_run.csv` |
-| `13_kansasii_lineages.py` (+ `submit_lineages.sbatch`) | core-SNP distances, NJ tree and clades within kansasii (82 genomes) from snippy alignments | `lineage/core_snp_distance_matrix.csv`, `lineage/kansasii_nj.nwk`, `lineage/kansasii_core_snps.fasta` |
+| `11_mgit_whole_gene.py` | MGIT whole-gene association (gene-level binary calls, Fisher within species) | `mgit/gene_matrix.csv`, `mgit/mgit_gene_tests.csv`, `mgit/mgit_tests_run.csv` |
+| `13_kansasii_lineages.py` | core-SNP distances, NJ tree and clades within kansasii (82 genomes) from snippy alignments | `lineage/core_snp_distance_matrix.csv`, `lineage/kansasii_nj.nwk`, `lineage/kansasii_core_snps.fasta` |
 | `14_stratified_analysis.py` | amikacin and gene-level tests stratified by clade | `lineage/kansasii_clades.csv`, `lineage/cladeB_gene_tests.csv`, `lineage/mic_cohort_clade_vs_mic.csv` |
 | `15_region_haplotype.py` | variant counts and haplotype classes in the 26 kb region FCNCLM_01713-01736 | `lineage/kansasii_region_haplotype.csv` |
-| `16_build_gubbins_alignment.py`, `submit_gubbins.sbatch` | full-length chromosome alignment (82 kansasii + reference) and the Gubbins 3.3.1 run (shared container `/shares/sander.imm.uzh/singu/gubbins_3.3.1--py310pl5321h83093d7_0.sif`; FastTree, GTRGAMMA; about 41 min) | `gubbins/kansasii_gubbins.*` |
+| `16_build_gubbins_alignment.py` + Gubbins step of `run_all.sbatch` | full-length chromosome alignment (82 kansasii + reference) and the Gubbins 3.3.1 run (shared container `/shares/sander.imm.uzh/singu/gubbins_3.3.1--py310pl5321h83093d7_0.sif`; FastTree, GTRGAMMA; about 41 min) | `gubbins/kansasii_gubbins.*` |
 | `17_blast_region.py` | BLAST of the three region haplotypes against 72 public complex genomes | `blast/per_genome_summary.csv` |
 | `18_gubbins_region_check.py`, `19_clonal_frame_pairs.py` | does Gubbins flag the region; clonal-frame nearest-relative test of haplotype vs amikacin | `gubbins/region_block_coverage_by_isolate.csv`, `gubbins/amikacin_pairs_table.csv` |
 | `20_gubbins_stratified.py` | tree-aware re-analysis using the Gubbins recombination-filtered tree (replaces the raw-distance clades of 13-14) | `gubbins/filtered_tree_distance_matrix.csv`, `gubbins/mantel_mic_vs_filtered_tree.csv`, `gubbins/main_cluster_gene_tests.csv` |
@@ -39,7 +53,7 @@ Run scripts in `env_mlsa` (`module load miniforge3; source activate env_mlsa`). 
 | `24_rsmA_rsmI_alleles.py`, `25_segment_protein_divergence.py`, `26_rsm_alleles_vs_amikacin.py` | RsmA/RsmI alleles across cohort and public genomes; divergence ranking within the segment; alleles vs amikacin | `boundaries/RsmA_allele_per_isolate.csv`, `boundaries/RsmI_allele_per_isolate.csv`, `boundaries/segment_protein_identity.csv` |
 | `12_mgit_lineage_followup.py` | characterise the top MGIT signal; ANI vs amikacin in the MIC cohort | `mgit/kansasii_mgit_block_ani_amikacin.csv`, `mgit/mic_cohort_ani_vs_mic.csv` |
 
-Reference files downloaded for numbering (UniProt H37Rv proteins, E. coli rrnA region) are in `output/gwas/ref/`.
+Reference files for numbering (UniProt H37Rv proteins, E. coli rrnA region) are in `output/gwas/ref/` (made by `00_fetch_references.sh`).
 
 ## Technical pitfalls found (these affect any rerun)
 1. Snippy `snps.tab` has empty gene/effect columns because the snippy `ref.gff` is 0 bytes. Genes are mapped with the Bakta GFF3 of
@@ -268,11 +282,3 @@ a recombination hotspot and is carried by several backgrounds. The tree-aware ch
   `KANSASII_ROOT` environment variable to point elsewhere (e.g. a mapped drive).
 - Nextflow, Singularity and sbatch steps only run on the cluster (or WSL).
 
-## Windows checkout
-
-- `.gitattributes` forces LF line endings, so a Windows checkout (even with
-  `core.autocrlf=true`) keeps scripts runnable. Recommended: `git config core.autocrlf false`
-  and `git config core.longpaths true`.
-- Scripts default to the cluster root `/shares/sander.imm.uzh/MM/kansasii`; set the
-  `KANSASII_ROOT` environment variable to point elsewhere (e.g. a mapped drive).
-- Nextflow, Singularity and sbatch steps only run on the cluster (or WSL).

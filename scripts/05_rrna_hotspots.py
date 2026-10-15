@@ -1,6 +1,8 @@
 """rRNA hotspot check in E. coli numbering: rrl A2058/A2059 (macrolides), rrs A1408 (aminoglycosides)."""
 from __future__ import annotations
 
+import ast
+import json
 import os
 from typing import Any
 import pandas as pd
@@ -17,8 +19,10 @@ print("E. coli 16S start/23S start in region:", s16, s23, "| 23S 2057-2063:", ec
 genome = {r.id: str(r.seq) for r in SeqIO.parse(ROOT / "runs/kansasii_complex_gtdb_representatives/assembly/results/GCF_000157895.3_query/2_annotation/GCF_000157895.3_query.fna", "fasta")}["contig_1"]
 G = pd.read_csv(OUT / "candidate_gene_coords.csv"); G = G[(G.chrom == "NC_022663.1") & G.gene.isin(["rrl", "rrs"])].set_index("gene")
 al = Align.PairwiseAligner(); al.mode = "global"; al.match_score, al.mismatch_score, al.open_gap_score, al.extend_gap_score = 2, -1, -4, -0.5
-feat = pd.read_csv(OUT / "candidate_features_per_sample.csv"); feat["features"] = feat.features.apply(eval)
+feat = pd.read_csv(OUT / "candidate_features_per_sample.csv"); feat["features"] = feat.features.apply(ast.literal_eval)
 sp = pd.read_csv(ROOT / "data/imm/screening_map_results.csv", usecols=["PROBENNUMMER", "species"]).set_index("PROBENNUMMER").species
+SITES_JSON = OUT / "hotspot_sites.json"  # written by 04_hotspots.py; the rRNA sites are added here
+all_sites: dict[str, list[int]] = json.loads(SITES_JSON.read_text(encoding="utf-8")) if SITES_JSON.exists() else {}
 HOT = {"rrl": (ec23, {2057: "G", 2058: "A", 2059: "A", 2503: "A", 2611: "C"}), "rrs": (ec16, {1408: "A", 1409: "A", 1491: "G"})}
 for gene, (ecseq, sites) in HOT.items():
     r: Any = G.loc[gene]; kan = genome[r.start - 1:r.end]; kan = kan if r.strand == "+" else str(Seq(kan).reverse_complement())
@@ -34,7 +38,9 @@ for gene, (ecseq, sites) in HOT.items():
         if kp is None:
             print(f"  E.coli {ep}: no aligned base"); continue
         gpos = r.start + kp - 1 if r.strand == "+" else r.end - kp + 1
+        all_sites[f"{gene}_{wt}{ep}"] = [int(gpos)]
         hits = [(s, f) for s, fs in zip(feat["sample"], feat["features"]) for f in fs if f.startswith(f"{gene}|") and f.split(":")[1][1:-1] == str(gpos) or (f"indel@{gpos}" in f)]
         print(f"  E.coli {ep} (expected {wt}, actual {ecseq[ep-1]}) -> kansasii {gene} pos {kp} base {kan[kp-1]} (genome {gpos}); isolates with a call there: {len(hits)}")
         for s, f in hits[:8]:
             print("     ", s, sp.get(s), f)
+SITES_JSON.write_text(json.dumps(all_sites), encoding="utf-8")

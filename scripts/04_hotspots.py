@@ -2,6 +2,8 @@
 alignment, verify the expected wild-type residue at each hotspot, then tabulate each isolate's state and MIC."""
 from __future__ import annotations
 
+import ast
+import json
 import os
 from typing import Any
 import re
@@ -49,10 +51,11 @@ def pos_map(a: str, b: str) -> dict[int, int]:
     return m
 
 feat = pd.read_csv(OUT / "candidate_features_per_sample.csv")
-feat["features"] = feat.features.apply(eval)
+feat["features"] = feat.features.apply(ast.literal_eval)
 pheno = pd.read_csv(OUT / "geno_pheno_table_long.csv")
 sp = pd.read_csv(ROOT / "data/imm/screening_map_results.csv", usecols=["PROBENNUMMER", "species"]).set_index("PROBENNUMMER").species
 check: list[dict[str, Any]] = []
+SITES: dict[str, list[int]] = {}  # hotspot -> chromosome codon positions, read by 06_hotspot_coverage.py
 rows: list[dict[str, Any]] = []
 for gene, hs in HOT.items():
     mtb = "".join(l.strip() for l in open(REF / f"Mtb_{gene}.faa", encoding="utf-8") if not l.startswith(">"))
@@ -66,6 +69,7 @@ for gene, hs in HOT.items():
                           kan_pos=kp, kan_ref_residue=kan[kp - 1] if kp else None, aln_identity=round(ident, 2)))
         if kp is None:
             continue
+        SITES[f"{gene}_{wt}{mp}"] = [int(r.start + 3 * (kp - 1) + i) if r.strand == "+" else int(r.end - 3 * (kp - 1) - i) for i in range(3)]
         for s, fs in zip(feat["sample"], feat["features"]):
             alts = [f.split(":")[1] for f in fs if f.startswith(f"{gene}|{r.locus}:") and re.fullmatch(rf"[A-Z*]{kp}[A-Z*]", f.split(":")[1])]
             state = alts[0] if alts else f"{kan[kp - 1]}{kp} (ref)"
@@ -75,6 +79,7 @@ chk.to_csv(OUT / "hotspot_numbering_check.csv", index=False)
 pd.set_option("display.width", 200)
 print(chk.to_string(index=False))
 ho = pd.DataFrame(rows)
+(OUT / "hotspot_sites.json").write_text(json.dumps(SITES), encoding="utf-8")
 ho.to_csv(OUT / "hotspot_genotypes_per_isolate.csv", index=False)
 print("\nvariant calls at hotspots (all 131 genomes):")
 v = ho[ho.variant].merge(sp.rename("gtdb"), left_on="sample", right_index=True, how="left")
