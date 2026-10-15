@@ -1,6 +1,10 @@
 # kansasii-gwas: genotype vs drug susceptibility in the M. kansasii complex
 
 Status as of 2026-10-05. Exploratory analysis; nothing here is a validated resistance finding.
+
+**Outdated inputs:** the numbers and results below are from the 2026-10-05/06 run (44 MIC isolates, 131 genomes).
+Since then the cohort grew to 186 genomes (jc batch NR 134-186) and 79 MHK-panel isolates
+(`output/mic/mhk`, jc MIC table added 2026-10-15). The analysis has not been rerun on it yet.
 Run scripts in `env_mlsa` (`module load miniforge3; source activate env_mlsa`). Outputs go to `output/gwas/`.
 
 ## Cohort that can be analysed
