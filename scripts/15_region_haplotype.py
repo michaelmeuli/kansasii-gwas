@@ -20,7 +20,10 @@ for s in names:
     V[s] = set(zip(t.POS, t.REF, t.ALT))
 lin["n_var_region"] = [len(V[s]) for s in names]
 lin["haplotype"] = np.where(lin.n_var_region > 50, "divergent", "ref-like")
-print("distribution of region variant counts (all 82 kansasii):", np.percentile(lin.n_var_region, [0, 10, 25, 50, 75, 90, 100]).astype(int).tolist())
+# three-class label used by 18-22: variant counts fall in clean groups (0-30, ~180-215, ~290-405, ~820-920);
+# the cut points sit in the gaps. 292 variants (one isolate, cohort of 2026-10) is closer to the mixed group.
+lin["hap"] = pd.cut(lin.n_var_region, [-1, 50, 250, 600, 10**9], labels=["none(ref-like)", "H~211", "H~400(mix)", "H~880"]).astype(str)
+print("distribution of region variant counts (all kansasii):", np.percentile(lin.n_var_region, [0, 10, 25, 50, 75, 90, 100]).astype(int).tolist())
 print("values between 1 and 800 (intermediate states):", lin.n_var_region[(lin.n_var_region > 0) & (lin.n_var_region < 800)].tolist())
 print(pd.crosstab(lin.clade, lin.haplotype).to_string())
 lin.to_csv(G / "lineage/kansasii_region_haplotype.csv")

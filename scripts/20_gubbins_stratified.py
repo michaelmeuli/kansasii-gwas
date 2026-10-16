@@ -9,6 +9,7 @@ import os
 from typing import Any
 import numpy.typing as npt
 import numpy as np
+from Bio import Phylo
 import pandas as pd
 from pathlib import Path
 from scipy.cluster.hierarchy import linkage, fcluster
@@ -18,7 +19,13 @@ from statsmodels.stats.contingency_tables import StratifiedTable
 
 ROOT = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii")); G = ROOT / "output/gwas"; OUT = G / "gubbins"
 rng = np.random.default_rng(7)
-D = pd.read_csv(OUT / "filtered_tree_distance_matrix.csv", index_col=0).drop(index="Mkan329-068", columns="Mkan329-068")
+# patristic distances (substitutions, recombination filtered) between the isolates of the Gubbins final tree;
+# also read by 23_segment_vs_amikacin.py
+_T = Phylo.read(OUT / "kansasii_gubbins.final_tree.tre", "newick")  # type: ignore[attr-defined,no-untyped-call]
+_tips = sorted(t.name for t in _T.get_terminals() if not t.name.startswith("Reference"))
+_D = pd.DataFrame([[0.0 if a == b else _T.distance(a, b) for b in _tips] for a in _tips], index=_tips, columns=_tips)
+_D.to_csv(OUT / "filtered_tree_distance_matrix.csv")
+D = _D.drop(index="Mkan329-068", columns="Mkan329-068")
 names = D.index.tolist(); print("isolates in tree analyses:", len(names), "(Mkan329-068 excluded)")
 Z = linkage(squareform(D.values, checks=False), "average")
 cl = {h: pd.Series(fcluster(Z, h, "distance"), index=names) for h in (40, 60, 100)}

@@ -19,7 +19,7 @@ def cls(r: Any) -> str:
     if L <= .10 and R <= .10: return "none"
     return "partial/mosaic"
 d["cls"] = d.apply(cls, axis=1); d.to_csv(G / "boundaries/segment_classes_v2.csv")
-print("segment classes (82 kansasii):", d.cls.value_counts().to_dict())
+print("segment classes (kansasii):", d.cls.value_counts().to_dict())
 print("old haplotype class vs new:\n", pd.crosstab(d.hap.astype(str), d.cls).to_string())
 mg = pd.read_csv(ROOT / "output/mic/mgit/mgit_parsed.csv")
 ak = mg[(mg.antibiotic == "Amikacin") & (mg.concentration_mg_l == 1.0) & mg.erg.isin(["R", "I", "S"])].drop_duplicates("NR").set_index("NR").erg

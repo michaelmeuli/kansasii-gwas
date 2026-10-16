@@ -49,7 +49,7 @@ for name, (lt, mg) in GENES.items():
     ids = {p: ("REF-like" if p == ref[lt] else f"alleleP{k}") for k, p in enumerate([p for p, _ in alleles.most_common() if p != ref[lt]], 1)}
     ids[ref[lt]] = "REF-like"
     A[f"{name}_id"] = A[name].map(ids)
-    print("allele counts across 82 kansasii genomes:", dict(Counter(A[f"{name}_id"])))
+    print("allele counts across the kansasii genomes:", dict(Counter(A[f"{name}_id"])))
     print("allele by segment class:\n", pd.crosstab(A[f"{name}_id"], A.cls).to_string())
     for p, a in ids.items():
         if a == "REF-like": continue

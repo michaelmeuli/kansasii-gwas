@@ -1,4 +1,4 @@
-"""Reclassify all 82 kansasii genomes on the BLAST-derived extent of the persicum-derived segment (NC_022663.1:1,929,793-1,994,501; script 21).
+"""Reclassify all kansasii genomes on the BLAST-derived extent of the persicum-derived segment (NC_022663.1:1,929,793-1,994,501; script 21).
 Diagnostic sites = positions in the segment where all contig-complete carriers share a non-reference base and both reference-like controls equal the reference.
 Left part 1,929,793-1,950,330 (persicum-like also in the ~211 haplotype), right part 1,950,331-1,994,501 (only in the full haplotype)."""
 from __future__ import annotations

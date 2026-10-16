@@ -1,4 +1,4 @@
-"""Full-length chromosome alignment (NC_022663.1) of the 82 non-excluded kansasii genomes + the reference, from snippy snps.aligned.fa
+"""Full-length chromosome alignment (NC_022663.1) of the non-excluded kansasii genomes + the reference, from snippy snps.aligned.fa
 ('-' = no coverage, 'N' = low coverage; Gubbins treats both as missing). Writes output/gwas/gubbins/kansasii_chr_aln.fasta."""
 from __future__ import annotations
 
