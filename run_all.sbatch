@@ -3,7 +3,7 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
 #SBATCH --time=24:00:00
-#SBATCH --output=%x-%j.log
+#SBATCH --output=/shares/sander.imm.uzh/MM/kansasii/output/gwas/logs/%x-%j.log
 # Whole genotype-phenotype analysis: scripts/00 .. 26 in numeric order (that order is a valid
 # dependency order), with the Gubbins run between 16 and 17. Stops at the first failure.
 #
