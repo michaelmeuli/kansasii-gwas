@@ -49,3 +49,8 @@ for s in scripts/[0-9][0-9]_*; do
   fi
 done
 echo "done $(date +%T)"
+
+# provenance (see kansasii-docs/docs/PROVENANCE.md)
+bash /shares/sander.imm.uzh/MM/kansasii/repos/kansasii-docs/bin/write_manifest.sh \
+  "/shares/sander.imm.uzh/MM/kansasii/output/gwas" \
+  /shares/sander.imm.uzh/MM/kansasii/repos/kansasii-gwas run_all.sbatch /shares/sander.imm.uzh/MM/kansasii/data/imm/screening_map_results.csv /shares/sander.imm.uzh/MM/kansasii/output/mic
