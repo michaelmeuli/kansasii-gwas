@@ -1,0 +1,13 @@
+# Same as env_mlsa plus statsmodels. blastn/makeblastdb/tblastn (scripts 17, 21, 24) come from
+# env_arm (see kansasii-arm/environment.yml); run_all.sbatch adds it to PATH.
+name: env_mlsa
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python=3.11
+  - biopython
+  - pandas
+  - numpy
+  - scipy
+  - statsmodels

@@ -252,3 +252,8 @@ Both need more isolates and repeat testing; neither is confirmed.
   `KANSASII_ROOT` environment variable to point elsewhere (e.g. a mapped drive).
 - Nextflow, Singularity and sbatch steps only run on the cluster (or WSL).
 
+
+## Provenance
+
+The sbatch files write `MANIFEST.txt` (commit, clean/dirty flag, script, conda env hash, inputs) into the output
+directory when they finish; see `kansasii-docs/docs/PROVENANCE.md`. Project index: `kansasii-docs/README.md`.
