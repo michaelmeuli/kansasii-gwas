@@ -7,9 +7,10 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 from Bio import SeqIO
+from exclusions import contaminated_nr
 
 ROOT = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii")); OUT = ROOT / "output/gwas/gubbins"; RES = ROOT / "runs/mkan329/assembly/results"
-EXCL = {35, 113, 106, 10, 21}
+EXCL = contaminated_nr(ROOT)
 m = pd.read_csv(ROOT / "data/imm/screening_map_results.csv", usecols=["NR", "PROBENNUMMER", "species"])
 m = m[(m.species == "kansasii") & ~m.NR.isin(EXCL)].sort_values("NR")
 

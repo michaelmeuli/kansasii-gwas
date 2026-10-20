@@ -16,12 +16,13 @@ from collections import defaultdict
 from Bio import SeqIO
 from Bio.Seq import Seq
 from scipy.stats import fisher_exact
+from exclusions import contaminated_nr
 
 ROOT = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii")); OUT = ROOT / "output/gwas/mgit"; OUT.mkdir(exist_ok=True)
 RES = ROOT / "runs/mkan329/assembly/results"
 REFDIR = ROOT / "runs/kansasii_complex_gtdb_representatives/assembly/results/GCF_000157895.3_query/2_annotation"
 CONTIG = {"contig_1": "NC_022663.1", "contig_2": "NC_022654.1"}
-EXCL = {35, 113, 106, 10, 21}
+EXCL = contaminated_nr(ROOT)
 CTRL = {"Mycobacterium tuberculosis", "Mycobacterium avium", "Mycobacterium abscessus", "Mycobacterium xenopi", "Mycobacterium marinum"}
 UP = 150
 genome = {CONTIG[r.id]: str(r.seq) for r in SeqIO.parse(REFDIR / "GCF_000157895.3_query.fna", "fasta")}

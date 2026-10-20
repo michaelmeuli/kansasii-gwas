@@ -10,6 +10,7 @@ from pathlib import Path
 from scipy.stats import mannwhitneyu, spearmanr
 from scipy.cluster.hierarchy import linkage, fcluster
 from scipy.spatial.distance import squareform
+from exclusions import contaminated_nr
 
 ROOT = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii")); OUT = ROOT / "output/gwas/mgit"; RES = ROOT / "runs/mkan329/assembly/results"
 KEY = "FCNCLM_04057||prom"
@@ -29,7 +30,7 @@ d.to_csv(OUT / "kansasii_mgit_block_ani_amikacin.csv")
 
 # variant-set distances among all non-excluded kansasii genomes
 allk = pd.read_csv(ROOT / "data/imm/screening_map_results.csv", usecols=["NR", "PROBENNUMMER", "species"])
-allk = allk[(allk.species == "kansasii") & ~allk.NR.isin([35, 113, 106, 10, 21])]
+allk = allk[(allk.species == "kansasii") & ~allk.NR.isin(contaminated_nr(ROOT))]
 S = {nr: set(map(tuple, pd.read_csv(RES / p / "5_typing/kansasii_snippy/snippy_out/snps.tab", sep="\t", dtype=str, usecols=["CHROM", "POS", "ALT"]).values))
      for nr, p in zip(allk.NR, allk.PROBENNUMMER)}
 ids = list(S); D = np.array([[len(S[a] ^ S[b]) for b in ids] for a in ids]); ix = {n: i for i, n in enumerate(ids)}

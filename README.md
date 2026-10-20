@@ -31,7 +31,7 @@ statsmodels) and takes `blastn`/`makeblastdb`/`tblastn` (scripts 17, 21, 24) fro
 - 83 isolates have broth-microdilution MIC (`output/mic/mhk/mic_parsed.csv`, 13 drugs, includes the jc MIC table); 80 of them also have a genome
   and are not excluded: 59 kansasii, 12 persicum, 6 pseudokansasii, 1 attenuatum, 1 innocens and 1 avium (NR 184, not a complex member, see
   "Open items"). 66 isolates have MGIT results and a genome; the two cohorts overlap in 15 kansasii isolates.
-- Excluded in `01_build_table.py`: NR 35, 113, 106, 10, 21 (mixed or contaminated cultures) and control strains.
+- Excluded in `01_build_table.py`: isolates with `contamination_flag == "contaminated"` (CheckM > 10 %: NR 35, 106, 113; one rule for all scripts via `scripts/exclusions.py`) and control strains. NR 10 and 21 (7.7 % contamination) were excluded by hand before 2026-10-20 and are now included.
 - Almost all isolates are susceptible by CLSI category, so continuous log2 MIC is used. Censored values (`<=`, `>`) are treated as exact.
 - Persicum has 12 isolates with MIC, the other non-kansasii species 1-6 each; per-species statistics are only meaningful for kansasii.
 
@@ -232,7 +232,7 @@ Both need more isolates and repeat testing; neither is confirmed.
 
 ## Open items
 1. `01_build_table.py` still treats NR 184 (M. avium) as usable; exclude non-complex species and rerun (a one-isolate change, but it enters every
-   pooled analysis). Also hard-coded: the exclusion list (NR 35, 113, 106, 10, 21), Mkan329-068 in scripts 20 and 23, the carrier and control
+   pooled analysis). Also hard-coded: Mkan329-068 in scripts 20 and 23, the carrier and control
    isolates in script 21, and the clade labels of script 14, which no longer separate anything on 122 genomes.
 2. Retest 054 and 055 (all drugs): a repeat decides whether the multi-drug shift is real.
 3. Test whether position 3145420 changes ethA expression or ethionamide MIC (other persicum isolates, reporter assay).

@@ -11,12 +11,13 @@ from pathlib import Path
 from collections import defaultdict
 from Bio import SeqIO
 from Bio.Seq import Seq
+from exclusions import contaminated_nr
 
 ROOT = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii")); OUT = ROOT / "output/gwas"
 RES = ROOT / "runs/mkan329/assembly/results"
 REFDIR = ROOT / "runs/kansasii_complex_gtdb_representatives/assembly/results/GCF_000157895.3_query/2_annotation"
 CONTIG = {"contig_1": "NC_022663.1", "contig_2": "NC_022654.1"}
-EXCL = {35, 113, 106, 10, 21}
+EXCL = contaminated_nr(ROOT)
 FOCAL = {"Mkan329-054": "persicum", "Mkan329-055": "persicum", "Mkan329-047": "kansasii", "Mkan329-016": "pseudokansasii",
          "Mkan329-050": "kansasii", "Mkan329-009": "persicum", "Mkan329-008": "innocens"}
 genome = {CONTIG[r.id]: str(r.seq) for r in SeqIO.parse(REFDIR / "GCF_000157895.3_query.fna", "fasta")}

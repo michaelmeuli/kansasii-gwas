@@ -3,9 +3,11 @@ import os
 import pandas as pd
 from pathlib import Path
 
+from exclusions import contaminated_nr
+
 ROOT = Path(os.environ.get("KANSASII_ROOT", "/shares/sander.imm.uzh/MM/kansasii"))
 OUT = ROOT / "output/gwas"
-EXCLUDE = {35, 113, 106, 10, 21}      # mixed / contaminated cultures
+EXCLUDE = contaminated_nr(ROOT)       # mixed / contaminated cultures (CheckM > 10 %)
 REVIEW = {8, 28, 46}                  # species calls disagree
 CONTROL_SPECIES = {"Mycobacterium tuberculosis", "Mycobacterium avium", "Mycobacterium abscessus",
                    "Mycobacterium xenopi", "Mycobacterium marinum"}
