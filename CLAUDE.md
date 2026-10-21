@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-See README.md; it is superseded by `kansasii-arm` and kept for the record. Easy to get wrong:
+See README.md; it is superseded by `kansasii-amr-marker-screen` and kept for the record. Easy to get wrong:
 
 - **Run:** `sbatch run_all.sbatch` (scripts 00-26 in numeric order, Gubbins after 16). Not on the login node.
 - **Environment:** `env_mlsa` (see `environment.yml`); blast tools come from `env_arm` via PATH, set in the sbatch file.

@@ -1,10 +1,10 @@
 # kansasii-gwas: genotype vs drug susceptibility in the M. kansasii complex
 
-> **Status: superseded by `kansasii-arm`; no positive findings.** This was an exploratory genotype-phenotype analysis, not a true
+> **Status: superseded by `kansasii-amr-marker-screen`; no positive findings.** This was an exploratory genotype-phenotype analysis, not a true
 > GWAS. With 80 usable isolates (59 kansasii), almost no CLSI resistance, extensive recombination and strong species/lineage structure,
 > the cohort is too small for genome-wide association. No hotspot resistance mutations were found, and no association survived multiple
 > testing or replication in the independent cohort. The persicum-segment/amikacin and ethA-upstream leads are unconfirmed hypotheses. Use
-> `kansasii-arm` (targeted AMR markers vs MIC) for resistance work; this repo is kept for the record, the numbering/pitfall notes below
+> `kansasii-amr-marker-screen` (targeted AMR markers vs MIC) for resistance work; this repo is kept for the record, the numbering/pitfall notes below
 > and the negative hotspot result.
 
 Status as of 2026-10-16: rerun from scratch with `run_all.sbatch` on the full cohort (186 genomes, 83 isolates with a

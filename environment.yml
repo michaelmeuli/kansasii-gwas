@@ -1,5 +1,5 @@
 # Same as env_mlsa plus statsmodels. blastn/makeblastdb/tblastn (scripts 17, 21, 24) come from
-# env_arm (see kansasii-arm/environment.yml); run_all.sbatch adds it to PATH.
+# env_arm (see kansasii-amr-marker-screen/environment.yml); run_all.sbatch adds it to PATH.
 name: env_mlsa
 channels:
   - conda-forge
